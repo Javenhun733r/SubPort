@@ -9,7 +9,7 @@
       </div>
       <div class="form-group">
         <label >Логін</label>
-        <input type="text" id="username" v-model="username" required>
+        <input type="text" id="name" v-model="name" required>
       </div>
       <div class="form-group">
         <label >Пароль</label>
@@ -27,7 +27,7 @@ import axios from 'axios';
 export default {
   data() {
     return {
-      username: "",
+      name: "",
       email: "",
       password: ""
     };
@@ -35,13 +35,13 @@ export default {
   methods: {
     async signup() {
       const userData = {
-        username: this.username,
+        name: this.name,
         email: this.email,
         password: this.password,
       };
 
       try {
-        const response = await axios.post("http://localhost:8081/signup", userData);
+        const response = await axios.post("http://localhost:8081/register", userData);
         localStorage.setItem("jwt", response.data);
         console.log(localStorage.getItem("jwt"));
 

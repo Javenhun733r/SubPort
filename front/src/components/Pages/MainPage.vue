@@ -20,12 +20,11 @@
       </select>
     </div>
 
-    <!-- Creators Grid -->
     <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-      <CreatorCard
-          v-for="creator in filteredCreators"
-          :key="creator.username"
-          :creator="creator"
+      <CreatorCard class="creator-card"
+                   v-for="creator in filteredCreators"
+                   :key="creator.username"
+                   :creator="creator"
       />
     </div>
   </div>
@@ -33,7 +32,7 @@
 
 <script>
 import CreatorCard from '../CreatorCard/CreatorCard.vue'
-
+import axios from 'axios';
 export default {
   components: { CreatorCard },
   data() {
@@ -60,7 +59,6 @@ export default {
           avatar: 'https://placekitten.com/102/102',
           socials: ['youtube']
         },
-        // Додай ще кого хочеш
       ]
     }
   },
@@ -71,13 +69,13 @@ export default {
           (this.selectedGenre === '' || c.genre === this.selectedGenre)
       )
     }
-  }
+  },
 }
 </script>
 
 <style scoped>
 /* Стилі для форми пошуку та фільтру */
-input, select {
+input, select, textarea {
   font-size: 1rem;
   border-radius: 9999px;
   background-color: white;
@@ -85,7 +83,7 @@ input, select {
   transition: all 0.3s ease;
 }
 
-input:focus, select:focus {
+input:focus, select:focus, textarea:focus {
   outline: none;
   box-shadow: 0 2px 6px rgba(66, 153, 225, 0.6);
   border-color: #4c51bf;
@@ -97,6 +95,11 @@ input {
 
 select {
   padding-left: 1.5rem;
+}
+
+textarea {
+  padding-left: 1.5rem;
+  padding-top: 1rem;
 }
 
 /* Стилі для заголовка */

@@ -1,0 +1,74 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int              @id @default(autoincrement())
+  name            String           @db.VarChar(191)
+  email           String           @unique @db.VarChar(191)
+  password        String
+  role            Role             @default(USER)
+  authorRequests  AuthorRequest[]  // Ось це додано
+}
+
+
+enum Role {
+  USER
+  ADMIN
+}
+model AuthorRequest {
+  id         Int      @id @default(autoincrement())
+  username   String   @unique
+  name       String
+  bio        String?
+  avatarFile String?
+  genre      String?
+  socials    Json?    // Використовуємо тип Json для збереження масиву соцмереж
+  status     RequestStatus @default(PENDING)
+  createdAt  DateTime @default(now())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+}
+model Author {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  name         String
+  avatarUrl    String?
+  bio          String?
+  subscribers  Int      @default(0)
+  socials      Json?    // Масив об'єктів для соцмереж (Twitter, Instagram, тощо)
+  posts        Post[]
+  tiers        Tier[]
+}
+model Post {
+  id        Int     @id @default(autoincrement())
+  title     String
+  content   String
+  authorId  Int
+  author    Author  @relation(fields: [authorId], references: [id])
+}
+model Tier {
+  id        Int      @id @default(autoincrement())
+  title     String
+  price     Int
+  description String
+  authorId  Int
+  author    Author   @relation(fields: [authorId], references: [id])
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

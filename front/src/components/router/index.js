@@ -3,8 +3,10 @@ import { createRouter, createWebHistory } from "vue-router";
 import WelcomePage from "@/components/Pages/WelcomePage.vue";
 import LoginPage from "@/components/Pages/LoginPage.vue";
 import SignUpPage from "@/components/Pages/SignUpPage.vue";
-import ProfilePage from "@/components/Pages/ProfilePage.vue";
+import AuthorPage from "@/components/Pages/AuthorPage.vue";
 import MainPage from "@/components/Pages/MainPage.vue";
+import AdminRequests from "@/components/Pages/AdminRequests.vue";
+import AddAuthor from "@/components/Pages/AddAuthor.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -25,15 +27,26 @@ const router = createRouter({
             component: LoginPage,
         },
         {
-            path: "/profile",
-            name: "Profile page",
-            component: ProfilePage,
+            path: '/author/:username',
+            name: 'AuthorPage',
+            component: () => import('@/components/Pages/AuthorPage.vue'),
+            props: true
         },
         {
             path: "/main",
             name: "Main page",
             component: MainPage,
         },
+        {
+            path: "/requests_page",
+            name: "Requests page",
+            component: AdminRequests,
+        },
+        {
+            path: '/add-author',
+            name: 'add-author',
+            component: AddAuthor
+        }
     ],
 });
 

@@ -5,8 +5,8 @@
 
 
       <div class="form-group">
-        <label >Логін</label>
-        <input type="text" id="username" v-model="username" required>
+        <label >Пошта</label>
+        <input type="email" id="email" v-model="email" required>
       </div>
       <div class="form-group">
         <label >Пароль</label>
@@ -24,14 +24,14 @@ import axios from 'axios';
 export default {
   data() {
     return {
-      username: "",
+      email: "",
       password: ""
     };
   },
   methods: {
     async login() {
       const userData = {
-        username: this.username,
+        email: this.email,
         password: this.password,
       };
 

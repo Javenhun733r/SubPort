@@ -4,8 +4,13 @@
       <router-link to="/" class="text-logo">SubPort</router-link>
     </div>
     <ul class="nav-links" >
-      <li v-if="isAuth"><router-link to="/login">Login</router-link></li>
-      <li v-if="isAuth"><router-link to="/signup">Register</router-link></li>
+
+      <li v-if="isAuth"><router-link to="/add-author">Додай свою сторінку</router-link></li>
+      <li v-if="isAuth"><router-link to="/main">Головна</router-link></li>
+      <li v-if="isAuth" @click="logout">Вийти</li>
+      <li v-if="!isAuth"><router-link to="/login">Увійти</router-link></li>
+      <li v-if="!isAuth"><router-link to="/signup">Зареєструватися</router-link></li>
+
     </ul>
   </nav>
 </template>
