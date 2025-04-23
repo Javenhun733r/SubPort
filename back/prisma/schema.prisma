@@ -46,6 +46,7 @@ model Author {
   name         String
   avatarUrl    String?
   bio          String?
+  genre        String?
   subscribers  Int      @default(0)
   socials      Json?    // Масив об'єктів для соцмереж (Twitter, Instagram, тощо)
   posts        Post[]

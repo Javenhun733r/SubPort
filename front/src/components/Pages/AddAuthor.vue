@@ -1,59 +1,131 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-purple-100 to-blue-100 p-6 flex items-center justify-center">
-    <!-- Header -->
-    <h1 class="text-4xl font-bold text-center text-indigo-900 mb-8 shadow-2xl px-6 py-4 rounded-lg bg-white border-4 border-indigo-600">Створити автора</h1>
+  <div class="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-blue-200 p-8 flex flex-col items-center">
+    <h1 class="text-4xl font-bold text-indigo-900 mb-10 shadow-xl px-8 py-4 rounded-full bg-white border-4 border-indigo-600">Додати нового автора</h1>
 
-    <!-- Form to add author -->
-    <div class="max-w-lg w-full bg-white p-8 rounded-xl shadow-xl space-y-6">
+    <div class="w-full max-w-2xl bg-white p-10 rounded-3xl shadow-2xl space-y-8">
       <form @submit.prevent="submitForm" class="space-y-6">
         <!-- Username -->
-        <div class="mb-6">
-          <label for="username" class="block text-gray-700 font-medium text-lg">Нікнейм:</label>
-          <input v-model="newAuthor.username" type="text" id="username" class="w-full px-4 py-3 mt-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-md" required />
+        <div>
+          <label for="username" class="block text-indigo-800 font-semibold text-lg">Нікнейм</label>
+          <input
+              v-model="newAuthor.username"
+              type="text"
+              id="username"
+              placeholder="@nickname"
+              class="input-field"
+              required
+          />
         </div>
 
         <!-- Name -->
-        <div class="mb-6">
-          <label for="name" class="block text-gray-700 font-medium text-lg">Ім'я:</label>
-          <input v-model="newAuthor.name" type="text" id="name" class="w-full px-4 py-3 mt-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-md" required />
+        <div>
+          <label for="name" class="block text-indigo-800 font-semibold text-lg">Ім’я</label>
+          <input
+              v-model="newAuthor.name"
+              type="text"
+              id="name"
+              placeholder="Ім’я автора"
+              class="input-field"
+              required
+          />
+        </div>
+        <!-- Genre -->
+        <div>
+          <label for="genre" class="block text-indigo-800 font-semibold text-lg">Жанр</label>
+          <select
+              v-model="newAuthor.genre"
+              id="genre"
+              class="input-field"
+              required
+          >
+            <option disabled value="">Оберіть жанр</option>
+            <option v-for="(genre, idx) in genres" :key="idx" :value="genre">
+              {{ genre }}
+            </option>
+          </select>
         </div>
 
         <!-- Avatar -->
-        <div class="mb-6">
-          <label for="avatarFile" class="block text-gray-700 font-medium text-lg">Аватар:</label>
-          <input @change="handleAvatarUpload" type="file" id="avatarFile" accept="image/*" class="w-full px-4 py-3 mt-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-md" />
+        <div>
+          <label for="avatarFile" class="block text-indigo-800 font-semibold text-lg">Аватар</label>
+          <input
+              @change="handleAvatarUpload"
+              type="file"
+              id="avatarFile"
+              accept="image/*"
+              class="input-field"
+          />
         </div>
 
         <!-- Socials -->
-        <div class="mb-6">
-          <label class="block text-gray-700 font-medium text-lg">Соціальні мережі:</label>
-          <div v-for="(social, index) in selectedSocials" :key="index" class="mb-4 space-y-4">
-            <div class="flex flex-col space-y-4">
-              <select v-model="social.name" class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md">
-                <option disabled value="">Виберіть соцмережу</option>
-                <option v-for="(option, idx) in socialNetworks" :key="idx" :value="option">{{ option }}</option>
+        <div>
+          <label class="block text-indigo-800 font-semibold text-lg mb-2">Соцмережі</label>
+          <div class="space-y-4">
+            <div
+                v-for="(social, index) in selectedSocials"
+                :key="index"
+                class="flex gap-2 items-center"
+            >
+              <select
+                  v-model="social.name"
+                  class="flex-1 input-field"
+              >
+                <option disabled value="">Виберіть платформу</option>
+                <option v-for="(option, idx) in socialNetworks" :key="idx" :value="option">
+                  {{ option }}
+                </option>
               </select>
-              <input v-model="social.link" type="url" placeholder="Введіть посилання" class="w-full px-4 py-3 mt-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md" />
-              <button type="button" @click="removeSocial(index)" class="text-red-500 hover:text-red-700">X</button>
+              <input
+                  v-model="social.link"
+                  type="url"
+                  placeholder="https://"
+                  class="flex-1 input-field"
+              />
+              <button
+                  type="button"
+                  @click="removeSocial(index)"
+                  class="text-red-500 hover:text-red-700 text-lg"
+                  title="Видалити"
+              >
+                ✕
+              </button>
             </div>
           </div>
-          <button @click="addSocial" type="button" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-all">Додати соцмережу</button>
+          <button
+              @click="addSocial"
+              type="button"
+              class="mt-4 px-4 py-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition"
+          >
+            ➕ Додати соцмережу
+          </button>
         </div>
 
         <!-- Bio -->
-        <div class="mb-6">
-          <label for="bio" class="block text-gray-700 font-medium text-lg">Біо:</label>
-          <textarea v-model="newAuthor.bio" id="bio" class="w-full px-4 py-3 mt-2 border focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md" rows="4"></textarea>
+        <div>
+          <label for="bio" class="block text-indigo-800 font-semibold text-lg">Опис</label>
+          <textarea
+              v-model="newAuthor.bio"
+              id="bio"
+              rows="4"
+              placeholder="Коротка біографія автора..."
+              class="input-field"
+          ></textarea>
         </div>
 
         <!-- Submit -->
-        <div class="flex justify-center">
-          <button type="submit" class="bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700 transition-all shadow-lg">Додати</button>
+        <div class="text-center">
+          <button
+              type="submit"
+              class="px-6 py-3 rounded-full bg-indigo-600 text-white text-lg font-semibold shadow-lg hover:bg-indigo-700 transition transform hover:scale-105"
+          >
+            ✅ Додати автора
+          </button>
         </div>
       </form>
     </div>
   </div>
 </template>
+
 
 <script>
 import axios from 'axios';
@@ -66,11 +138,13 @@ export default {
         name: '',
         avatarUrl: '',
         bio: '',
+        genre: '',
         socials: []
       },
       avatarFile: null,
       selectedSocials: [{ name: '', link: '' }],
-      socialNetworks: ['Instagram', 'Facebook', 'Twitter', 'YouTube', 'LinkedIn']
+      socialNetworks: ['Instagram', 'Facebook', 'Twitter', 'YouTube', 'LinkedIn'],
+      genres: ['Геймінг', 'Музика', 'Освіта', 'Гумор', 'Блоги', 'Арт'],
     };
   },
   methods: {
@@ -80,7 +154,7 @@ export default {
         formData.append("username", this.newAuthor.username);
         formData.append("name", this.newAuthor.name);
         formData.append("bio", this.newAuthor.bio);
-        formData.append("userId", 2);
+        formData.append("genre", this.newAuthor.genre);
 
         // Фільтруємо лише заповнені соцмережі
         const filteredSocials = this.selectedSocials.filter(social => social.name && social.link);
@@ -89,8 +163,12 @@ export default {
         if (this.avatarFile) {
           formData.append("avatarFile", this.avatarFile);
         }
-
-        await axios.post('http://localhost:8081/request', formData);
+        console.log(localStorage.getItem('jwt'));
+        await axios.post('http://localhost:8081/request', formData, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('jwt')}`
+          }
+        });
         alert("Заявка успішно надіслана!");
         this.newAuthor = { username: '', name: '', avatarUrl: '', bio: '', socials: [] };
         this.selectedSocials = [{ name: '', link: '' }];
@@ -147,7 +225,22 @@ input:focus, textarea:focus, select:focus {
   outline: none;
   box-shadow: 0 4px 10px rgba(66, 153, 225, 0.6);
 }
+.input-field {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background-color: #f9fafb;
+  border: 1px solid #cbd5e1;
+  font-size: 1rem;
+  transition: 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
 
+.input-field:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+  outline: none;
+}
 /* Стиль для кнопки */
 button {
   background-color: #4c51bf;

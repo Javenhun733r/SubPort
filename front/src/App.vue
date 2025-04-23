@@ -1,33 +1,38 @@
-<script setup>
-import Navigation from "@/components/Navigation.vue";
-
-</script>
-
+<!-- App.vue -->
 <template>
-
   <div class="app">
-    <Navigation/>
-    <content>
-      <router-view/>
-
-    </content>
-    <footer>
-
-    </footer>
-
+    <Navigation />
+    <main>
+      <router-view />
+    </main>
+    <footer></footer>
   </div>
 </template>
 
-<style scoped>
-*{
-  padding: 0;
+<script setup>
+import Navigation from "@/components/Navigation.vue";
+</script>
+
+<style>
+body, html, #app {
+  height: 100%;
+  margin: 0;
   font-family: "Raleway", sans-serif;
-  font-weight: 400;
 }
+
 .app {
-  min-height: 97.8vh;
-  background-image: url('src/assets/background.jpg');
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-image: url('@/assets/background.jpg');
   background-size: cover;
   background-position: center;
+  background-attachment: fixed;
+}
+
+/* Щоб контент не налипав */
+main {
+  flex: 1;
+  padding: 20px;
 }
 </style>

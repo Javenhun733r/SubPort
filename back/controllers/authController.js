@@ -3,30 +3,47 @@ import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken";
 
 export const RegisterController = async (req, res) => {
-    try{
+    try {
         const { name, email, password } = req.body;
-        const user = await prisma.user.findFirst({
-            where: {
-                email: email,
-            }
-        })
-        if (user) {
-            return res.json({error: "User already exists"}).status(400);
+
+        const existingUser = await prisma.user.findFirst({
+            where: { email },
+        });
+
+        if (existingUser) {
+            return res.status(400).json({ error: "User already exists" });
         }
+
         const hashedPassword = await bcrypt.hash(password, 10);
+
         const newUser = await prisma.user.create({
-            data:{
-                name: name,
-                email: email,
+            data: {
+                name,
+                email,
                 password: hashedPassword,
-            }
-        })
-        return res.json(newUser).status(201)
-    } catch (error){
+            },
+        });
+
+        // Створення payload без пароля
+        const payload = {
+            id: newUser.id,
+            name: newUser.name,
+            email: newUser.email,
+        };
+
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+        return res.status(201).json({
+            message: "User registered successfully",
+            token,
+        });
+
+    } catch (error) {
         console.log(error);
-        return res.json({error: "Internal Server Error"}).status(500);
+        return res.status(500).json({ error: "Internal Server Error" });
     }
-}
+};
+
 export const SignInController = async (req, res) => {
     try{
         const { email, password } = req.body;

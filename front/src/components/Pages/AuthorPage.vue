@@ -1,6 +1,6 @@
 <template>
   <div
-      class="min-h-screen bg-gradient-to-b from-indigo-800 to-purple-900 bg-cover bg-no-repeat relative px-4 py-6 text-black">
+      :style="backgroundStyle" class="back_image ">
 
 
     <!-- Profile Section -->
@@ -89,6 +89,8 @@
 import SubscriptionCard from '../SubscriptionCard/SubscriptionCard.vue'
 import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome'
 import axios from 'axios';
+import backgroundImage from '../../assets/background.jpg';
+
 
 export default {
   components: {SubscriptionCard, FontAwesomeIcon},
@@ -103,6 +105,11 @@ export default {
       isPostsVisible: false,
       isDonationsVisible: false,
       donationAmount: null,
+      backgroundStyle: {
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      },
     }
   },
 
@@ -173,7 +180,16 @@ export default {
 }
 </script>
 
-<style scoped>
+<style>
+.back_image{
+  background-image: url('src/assets/background.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 91vh;
+  width: 100%;
+  position: relative;
+}
 /* Стилі для іконок */
 .social-icon {
   font-size: 2rem; /* Збільшуємо розмір іконок */

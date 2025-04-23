@@ -33,6 +33,7 @@
 <script>
 import CreatorCard from '../CreatorCard/CreatorCard.vue'
 import axios from 'axios';
+
 export default {
   components: { CreatorCard },
   data() {
@@ -40,26 +41,20 @@ export default {
       searchQuery: '',
       selectedGenre: '',
       genres: ['Геймінг', 'Музика', 'Освіта', 'Гумор', 'Блоги', 'Арт'],
-      creators: [
-        {
-          username: 'Leb1ga',
-          genre: 'Гумор',
-          avatar: 'https://placekitten.com/100/100',
-          socials: ['youtube', 'telegram', 'tiktok']
-        },
-        {
-          username: 'ArtQueen',
-          genre: 'Арт',
-          avatar: 'https://placekitten.com/101/101',
-          socials: ['instagram', 'tiktok']
-        },
-        {
-          username: 'EduPro',
-          genre: 'Освіта',
-          avatar: 'https://placekitten.com/102/102',
-          socials: ['youtube']
-        },
-      ]
+      creators: [],
+    }
+  },
+  mounted() {
+    this.fetchCreators();
+  },
+  methods: {
+    async fetchCreators() {
+      try {
+        const response = await axios.get('http://localhost:8081/authors'); // Шлях до вашого API
+        this.creators = response.data; // Отримуємо всіх авторів
+      } catch (error) {
+        console.error("Error fetching creators:", error);
+      }
     }
   },
   computed: {
@@ -128,16 +123,22 @@ h1 {
   grid-template-columns: repeat(4, 1fr);
 }
 
-/* Покращення для карток */
 .creator-card {
+  margin-top: 10px;
   transition: all 0.3s ease;
-  border-radius: 20px; /* Заокруглення рамки картки */
+  border-radius: 20px;
   padding: 1.5rem;
-  background-color: white;
-  background: linear-gradient(145deg, rgba(234, 231, 255, 1), rgba(240, 247, 255, 1)); /* Градієнтний фон */
+  background: linear-gradient(145deg, rgba(234, 231, 255, 1), rgba(240, 247, 255, 1));
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  border: 1px solid #E5E7EB; /* Легка рамка */
+  border: 1px solid #E5E7EB;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-grow: 1;
 }
+
+
 
 .creator-card:hover {
   transform: scale(1.05);

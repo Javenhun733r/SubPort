@@ -37,13 +37,17 @@ export default {
 
       try {
         const response = await axios.post("http://localhost:8081/login", userData);
-        localStorage.setItem("jwt", response.data);
-        console.log(localStorage.getItem("jwt"));
+        const token = response.data.token;
 
-        await new Promise(resolve => setTimeout(resolve, 0));
+        if (token) {
+          localStorage.setItem("jwt", token);
+          console.log("JWT збережено:", token);
 
-
-        window.location.href = '/items';
+          // Перенаправлення
+          window.location.href = '/main';
+        } else {
+          console.error("JWT не отримано");
+        }
       } catch (error) {
         console.error("Login failed: " + error);
       }

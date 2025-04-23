@@ -8,7 +8,7 @@ export const getAuthorByUsername = async (req, res) => {
         const author = await prisma.author.findUnique({
             where: { username },
             include: {
-                posts: true,  // Посты
+                posts: true,
                 tiers: true,  // Підписки
             }
         });
@@ -54,7 +54,7 @@ export const createAuthor = async (req, res) => {
 };
 
 export const createAuthorRequest = async (req, res) => {
-    const { username, name, bio, genre, userId, subscribers, socials } = req.body;
+    const { username, name, bio, genre, subscribers, socials } = req.body;
     const avatarFile = req.file?.filename || null;
 
     try {
@@ -66,17 +66,18 @@ export const createAuthorRequest = async (req, res) => {
                 genre,
                 subscribers,
                 avatarFile,
-                userId: Number(userId),
-
+                userId: req.userId, // Витягуємо userId з JWT
                 socials: socials ? JSON.stringify(socials) : null
             }
         });
+
         res.status(201).json(newRequest);
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Failed to submit request' });
     }
 };
+
 
 
 
@@ -118,9 +119,10 @@ export const approveAuthorRequest = async (req, res) => {
                 name: request.name,
                 bio: request.bio,
                 avatarUrl: request.avatarFile,
-                socials: request.socials ? JSON.parse(request.socials) : null, // Взяти соцмережі з request.socials
+                genre: request.genre,
+                socials: request.socials ? JSON.parse(request.socials) : null,
                 tiers: {
-                    create: request.tiers || [], // Якщо є підписки, створюємо їх
+                    create: request.tiers || [],
                 },
             }
         });
@@ -165,5 +167,61 @@ export const checkAdmin = (req, res, next) => {
     }
     next();
 };
+export const getAuthors = async (req, res) => {
+    try {
+        const authors = await prisma.author.findMany();
+        res.json(authors);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error fetching authors' });
+    }
+};
 
+export const getProfile = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const user = await prisma.author.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                name: true,
+                username: true,
+                bio: true,
+                genre: true,
+                socials: true,
+            },
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        return res.status(200).json(user);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+export const updateProfile = async (req, res) => {
+    const { name, username, bio, genre, socials } = req.body;
+    const userId = req.userId;
+
+    try {
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                name,
+                username,
+                bio,
+                genre,
+                socials: socials ? JSON.stringify(socials) : null,
+            },
+        });
+
+        res.status(200).json(updatedUser);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
 

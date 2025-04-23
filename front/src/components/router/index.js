@@ -7,6 +7,7 @@ import AuthorPage from "@/components/Pages/AuthorPage.vue";
 import MainPage from "@/components/Pages/MainPage.vue";
 import AdminRequests from "@/components/Pages/AdminRequests.vue";
 import AddAuthor from "@/components/Pages/AddAuthor.vue";
+import ProfilePage from "@/components/Pages/ProfilePage.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -46,6 +47,11 @@ const router = createRouter({
             path: '/add-author',
             name: 'add-author',
             component: AddAuthor
+        },
+        {
+            path: '/profile',
+            name: 'Profile page',
+            component: ProfilePage,
         }
     ],
 });
