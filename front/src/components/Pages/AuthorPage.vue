@@ -12,7 +12,6 @@
       <p>{{ profile.bio }}</p>
 
       <div class="flex justify-center gap-6 mt-4">
-        <!-- Іконки FontAwesome для соцмереж -->
         <a v-for="(social, index) in profile.socials" :key="index" :href="social.link" target="_blank"
            class="social-icon">
           <font-awesome-icon :icon="`fa-brands fa-${social.name}`"/>
@@ -74,14 +73,21 @@
           :title="tier.title"
           :price="tier.price"
           :description="tier.description"
+          :isChat="tier.isChat"
+          @addUserToChat="addUserToChat"
       />
 
-      <!-- Додати новий тір -->
       <div v-if="isOwner" class="bg-white p-6 rounded-xl shadow-xl">
         <h3 class="text-xl font-semibold text-indigo-700 mb-4">Додати нову підписку</h3>
         <input v-model="newTier.title" placeholder="Назва" class="input mb-2"/>
         <input v-model="newTier.price" type="number" placeholder="Ціна (₴)" class="input mb-2"/>
         <textarea v-model="newTier.description" placeholder="Опис" class="input mb-2"></textarea>
+
+        <label class="flex items-center mb-4 text-sm text-gray-700">
+          <input type="checkbox" v-model="newTier.isChat" class="mr-2">
+          Додати підписників до чату
+        </label>
+
         <button @click="addTier" class="bg-indigo-600 text-white px-4 py-2 rounded-full">Додати підписку</button>
       </div>
     </section>
@@ -130,7 +136,7 @@ export default {
       tiers: [],
       posts: [],
       isOwner: false, // чи це сторінка поточного користувача
-      newTier: {title: '', price: '', description: ''},
+      newTier: {title: '', price: '', description: '', isChat: false},
       newPost: {title: '', content: ''},
       isSubscriptionsVisible: true,
       isPostsVisible: false,
@@ -210,20 +216,49 @@ export default {
     },
     async addTier() {
       if (!this.newTier.title || !this.newTier.price || !this.newTier.description) return;
+
       try {
         const token = localStorage.getItem('jwt');
-        const response = await axios.post(`http://localhost:8081/${this.profile.id}/tier`, this.newTier, {
+        const response = await axios.post(`http://localhost:8081/${this.profile.id}/tier`, {
+          title: this.newTier.title,
+          price: this.newTier.price,
+          description: this.newTier.description,
+          isChat: this.newTier.isChat  // передаємо isChat
+        }, {
           headers: {
             Authorization: `Bearer ${token}`,
           }
         });
+
+        if (this.newTier.isChat) {
+          await this.addUserToChat(response.data.id);
+        }
+
         this.tiers.push(response.data); // додаємо на фронті
-        this.newTier = {title: '', price: '', description: ''}; // очистити форму
+        this.newTier = {title: '', price: '', description: '', isChat: false}; // очистити форму
       } catch (e) {
         console.error('Не вдалося додати тіру:', e);
       }
     },
 
+    async addUserToChat() {
+      try {
+        const token = localStorage.getItem('jwt');
+        const response = await axios.post(`http://localhost:8081/chats/${this.profile.id}/add-user`, {},
+            {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            }
+        );
+
+        if (response.status === 200) {
+          alert('Ви були додані до чату!');
+        }
+      } catch (error) {
+        console.error('Не вдалося додати користувача до чату:', error);
+      }
+    },
     async addPost() {
       if (!this.newPost.title || !this.newPost.content) return;
       try {

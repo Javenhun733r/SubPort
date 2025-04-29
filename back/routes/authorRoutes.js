@@ -14,8 +14,7 @@ import {
     getProfile,
     createPost,
     createTier,
-    isOwner,
-    handleSubscriptionPurchase
+    isOwner, subscribeToTier
 } from "../controllers/authorController.js"
 const router = express.Router();
 
@@ -32,5 +31,5 @@ router.put('/profile', verifyToken, updateProfile);
 router.post("/:id/post", verifyToken, createPost);
 router.post("/:id/tier", verifyToken, createTier);
 router.get("/author/:username/is-owner", isOwner);
-router.post('/subscribe/:tierId', verifyToken, handleSubscriptionPurchase);
+router.post('/subscribe/:tierId', verifyToken, subscribeToTier);
 export default router;

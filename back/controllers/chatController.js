@@ -26,21 +26,21 @@ export const createChat = async (req, res) => {
 };
 
 export const getUserChats = async (req, res) => {
-
-
     try {
         const userId = req.userId;
         const chats = await prisma.chat.findMany({
             where: {
-                users: {
+                participants: {
                     some: {
                         userId: userId
                     }
                 }
             },
             include: {
-                users: {
-                    include: { user: true }
+                participants: {
+                    include: {
+                        user: true // Including the user data through the ChatUser model
+                    }
                 }
             }
         });
@@ -52,11 +52,14 @@ export const getUserChats = async (req, res) => {
     }
 };
 
+
 // Controller для доступу до чату
 export const getChatMessages = async (req, res) => {
-    const { chatId, userId } = req.params;
+    const { chatId} = req.params;
 
     try {
+        const userId = req.userId;
+        console.log(userId);
         // Перевірка, чи користувач є учасником чату
         const chatUser = await prisma.chatUser.findUnique({
             where: {
@@ -90,9 +93,10 @@ export const getChatMessages = async (req, res) => {
 
 
 export const sendMessage = async (req, res) => {
-    const { chatId, senderId, text } = req.body;
+    const { chatId, text } = req.body;
 
     try {
+        const senderId = req.userId;
         const message = await prisma.message.create({
             data: {
                 text,
@@ -141,24 +145,23 @@ export async function deleteChat(req, res) {
     }
 }
 export const addUserToChat = async (req, res) => {
-    const { chatId } = req.params;
+    const { profileId } = req.params;
     const userIdToAdd = req.userId;
 
     try {
-        const chat = await prisma.chat.findUnique({
-            where: { id: parseInt(chatId) },
-            include: { users: true }
+        const chat = await prisma.chat.findFirst({
+            where: { authorId: parseInt(profileId) },
+            include: { participants: true } // Correctly reference participants
         });
 
         if (!chat) return res.status(404).json({ error: 'Chat not found' });
 
-        // перевірка, чи вже є такий учасник
-        const exists = chat.users.find(u => u.userId === userIdToAdd);
+        const exists = chat.participants.some(u => u.userId === userIdToAdd); // Check if user is already in the chat
         if (exists) return res.status(400).json({ error: 'User already in chat' });
 
         await prisma.chatUser.create({
             data: {
-                chatId: parseInt(chatId),
+                chatId: chat.id,
                 userId: userIdToAdd
             }
         });
@@ -169,7 +172,6 @@ export const addUserToChat = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
-
 
 
 

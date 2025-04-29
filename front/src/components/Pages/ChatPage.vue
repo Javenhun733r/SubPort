@@ -1,10 +1,7 @@
 <template>
   <div class="chat-container">
     <aside class="sidebar">
-      <div class="new-chat-section">
-        <input v-model="newChatName" placeholder="Enter chat name..." />
-        <button @click="createNewChat">+ Create Chat</button>
-      </div>
+
 
       <div
           class="chat-item"
@@ -31,7 +28,7 @@
         </div>
       </div>
       <form @submit.prevent="sendMessage" class="input-area">
-        <input v-model="newMessage" placeholder="Type your message..." />
+        <input v-model="newMessage" placeholder="Type your message..."/>
         <button type="submit">Send</button>
       </form>
     </main>
@@ -40,12 +37,10 @@
 
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import {ref, onMounted, onBeforeUnmount} from 'vue';
 import axios from 'axios';
 
 
-
-const newChatName = ref('');
 const chats = ref([]);
 const selectedChatId = ref(null);
 const messages = ref([]);
@@ -53,10 +48,18 @@ const newMessage = ref('');
 let socket;
 
 onMounted(async () => {
-  socket = new WebSocket('ws://localhost:8081');
+
+  const token = localStorage.getItem('jwt');
+  socket = new WebSocket(`ws://localhost:8081?token=${token}`);
+
+
+  socket.addEventListener('open', () => {
+    socket.send(JSON.stringify({ type: 'join', chatId: selectedChatId.value }));
+  });
 
   socket.addEventListener('message', (event) => {
     const msg = JSON.parse(event.data);
+
     if (msg.chatId === selectedChatId.value) {
       messages.value.push(msg);
     }
@@ -65,7 +68,7 @@ onMounted(async () => {
   try {
     const token = localStorage.getItem('jwt');
     const res = await axios.get('http://localhost:8081/chats/user/', {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: {Authorization: `Bearer ${token}`}
     });
     chats.value = res.data;
   } catch (err) {
@@ -77,30 +80,18 @@ onBeforeUnmount(() => {
   if (socket) socket.close();
 });
 
-async function createNewChat() {
-  const name = newChatName.value.trim();
-  if (!name) return;
-
-  try {
-    const res = await axios.post('http://localhost:8081/chats', {
-      name,
-      userIds: [1, 2] // змінити за потреби
-    });
-    const chat = res.data;
-    chats.value.push(chat);
-    selectedChatId.value = chat.id;
-    messages.value = [];
-    newChatName.value = '';
-  } catch (err) {
-    console.error('Failed to create chat', err);
-  }
-}
 
 async function selectChat(chatId) {
   selectedChatId.value = chatId;
   messages.value = [];
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: 'join', chatId }));
+  }
   try {
-    const res = await axios.get(`http://localhost:8081/chats/${chatId}/messages`);
+    const token = localStorage.getItem('jwt');
+    const res = await axios.get(`http://localhost:8081/chats/${chatId}/messages`, {
+      headers: {Authorization: `Bearer ${token}`}
+    });
     messages.value = res.data.map(msg => ({
       id: msg.id,
       author: msg.sender.name,
@@ -111,6 +102,7 @@ async function selectChat(chatId) {
     console.error('Failed to load messages', err);
   }
 }
+
 async function deleteChat(chatId) {
   try {
     await axios.delete(`http://localhost:8081/chats/${chatId}`);
@@ -130,21 +122,24 @@ async function sendMessage() {
   const msg = {
     text: newMessage.value,
     chatId: selectedChatId.value,
-    senderId: 1
   };
 
   try {
-    await axios.post(`http://localhost:8081/chats/${selectedChatId.value}/messages`, msg);
+    const token = localStorage.getItem('jwt');
+    const res = await axios.post(`http://localhost:8081/chats/${selectedChatId.value}/messages`, msg, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
+    // Не додаємо повідомлення локально після HTTP запиту
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({
         ...msg,
-        author: 'You',
+        author: 'You', // Пишемо "You" тільки для відправника
         id: Date.now()
       }));
     }
 
-    messages.value.push({ ...msg, author: 'You', id: Date.now() });
+    // очищаємо поле введення
     newMessage.value = '';
   } catch (err) {
     console.error('Failed to send message', err);
@@ -230,6 +225,7 @@ async function sendMessage() {
   cursor: pointer;
   font-weight: bold;
 }
+
 .new-chat-section {
   margin-bottom: 1rem;
   display: flex;

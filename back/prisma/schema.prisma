@@ -79,7 +79,7 @@ model Tier {
   authorId  Int
   author    Author   @relation(fields: [authorId], references: [id])
   chats       Chat[]   @relation("TierChats")
-
+  isChat      Boolean  @default(false)
   TierSubscription TierSubscription[]
 }
 

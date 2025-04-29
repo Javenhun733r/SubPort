@@ -137,6 +137,16 @@ export const approveAuthorRequest = async (req, res) => {
                 },
             }
         });
+        await prisma.chat.create({
+            data: {
+                name: `Чат ${request.name}`, // Назва чату
+                creatorId: userId,  // Це ID автора, який створює чат
+                authorId: newAuthor.id,  // Прив'язка чату до нового автора
+                participants: {
+                    create: { userId } // Спочатку додається тільки автор як учасник
+                }
+            }
+        });
 
         res.json({message: 'Request approved and author created', author: newAuthor});
     } catch (err) {
@@ -261,7 +271,7 @@ export const createPost = async (req, res) => {
 };
 
 export const createTier = async (req, res) => {
-    const { title, price, description } = req.body;
+    const { title, price, description, isChat } = req.body;
 
     try {
         const author = await prisma.author.findUnique({
@@ -276,7 +286,8 @@ export const createTier = async (req, res) => {
                 title,
                 price: parseFloat(price),  // якщо price приходить як рядок
                 description,
-                authorId: author.id
+                authorId: author.id,
+                isChat: isChat || false // Зберігаємо значення для isChat
             }
         });
 
@@ -308,7 +319,7 @@ export const isOwner = async (req, res) => {
     }
 };
 // Controller для підтвердження підписки користувача
-const subscribeToTier = async (req, res) => {
+export const subscribeToTier = async (req, res) => {
     const { userId, tierId } = req.body;
 
     try {
@@ -361,4 +372,5 @@ const subscribeToTier = async (req, res) => {
         return res.status(500).json({ message: 'Сталася помилка при підписці на рівень' });
     }
 };
+
 

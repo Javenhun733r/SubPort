@@ -2,7 +2,7 @@
   <div class="bg-gradient-to-b from-indigo-700 to-purple-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 w-full max-w-sm mx-auto">
     <h3 class="font-semibold text-lg mb-3 text-white">{{ title }}</h3>
     <p class="text-2xl font-bold mb-2 text-white">{{ price }} ₴<span class="text-sm text-indigo-300">/міс</span></p>
-    <button class="w-full py-2 mb-4 bg-indigo-500 text-black rounded-full font-medium hover:bg-indigo-600 transition-all duration-200">
+    <button @click="handleSubscription" class="w-full py-2 mb-4 bg-indigo-500 text-black rounded-full font-medium hover:bg-indigo-600 transition-all duration-200">
       Підписатися
     </button>
     <p class="text-sm text-gray-300 mb-2">{{ description }}</p>
@@ -11,8 +11,19 @@
 
 <script>
 export default {
-  props: ['title', 'price', 'description']
+  props: ['title', 'price', 'description', 'isChat'],
+  methods: {
+    handleSubscription()
+    {
+      console.log('Користувач доданий до чату!');
+      if (this.isChat) {
+        this.$emit('addUserToChat');  // Викликаємо подію для додавання користувача до чату
+      }
+    }
+  }
 }
+
+
 </script>
 
 <style scoped>

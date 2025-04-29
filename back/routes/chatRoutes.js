@@ -11,8 +11,8 @@ const router = express.Router();
 
 router.post('/chats',verifyToken, createChat);
 router.get('/chats/user/', verifyToken, getUserChats);
-router.get('/chats/:chatId/messages', getChatMessages);
-router.post('/chats/:chatId/messages', sendMessage);
+router.get('/chats/:chatId/messages',verifyToken, getChatMessages);
+router.post('/chats/:chatId/messages',verifyToken, sendMessage);
 router.delete('/chats/:chatId',verifyToken, deleteChat);
-router.post('/chats/:chatId/add-user', verifyToken, addUserToChat);
+router.post('/chats/:profileId/add-user', verifyToken, addUserToChat);
 export default router;
