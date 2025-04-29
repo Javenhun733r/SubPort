@@ -5,7 +5,7 @@
 
     <!-- Profile Section -->
     <section class="text-center mb-8 relative z-10">
-      <img :src="profile.avatar" class="..." />
+      <img :src="profile.avatar" class="..."/>
       <h2>{{ profile.name }}</h2>
       <p>{{ profile.followers }} підписників</p>
       <p>{{ profile.fullName }}</p>
@@ -13,8 +13,9 @@
 
       <div class="flex justify-center gap-6 mt-4">
         <!-- Іконки FontAwesome для соцмереж -->
-        <a v-for="(social, index) in profile.socials" :key="index" :href="social.link" target="_blank" class="social-icon">
-          <font-awesome-icon :icon="`fa-brands fa-${social.name}`" />
+        <a v-for="(social, index) in profile.socials" :key="index" :href="social.link" target="_blank"
+           class="social-icon">
+          <font-awesome-icon :icon="`fa-brands fa-${social.name}`"/>
         </a>
       </div>
     </section>
@@ -63,26 +64,53 @@
       </button>
     </div>
 
-    <!-- Subscription Cards -->
     <section v-if="isSubscriptionsVisible"
-             class=" grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 relative z-10">
-      <SubscriptionCard class="subscription-card"
-                        v-for="tier in tiers"
-                        :key="tier.title"
-                        :title="tier.title"
-                        :price="tier.price"
-                        :description="tier.description"
+             class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 relative z-10">
+      <!-- Карточки існуючих тирів -->
+      <SubscriptionCard
+          class="subscription-card"
+          v-for="tier in tiers"
+          :key="tier.title"
+          :title="tier.title"
+          :price="tier.price"
+          :description="tier.description"
       />
+
+      <!-- Додати новий тір -->
+      <div v-if="isOwner" class="bg-white p-6 rounded-xl shadow-xl">
+        <h3 class="text-xl font-semibold text-indigo-700 mb-4">Додати нову підписку</h3>
+        <input v-model="newTier.title" placeholder="Назва" class="input mb-2"/>
+        <input v-model="newTier.price" type="number" placeholder="Ціна (₴)" class="input mb-2"/>
+        <textarea v-model="newTier.description" placeholder="Опис" class="input mb-2"></textarea>
+        <button @click="addTier" class="bg-indigo-600 text-white px-4 py-2 rounded-full">Додати підписку</button>
+      </div>
     </section>
 
     <!-- User Posts Section -->
-    <section v-if="isPostsVisible" class="mt-8">
-      <div v-for="(post, index) in posts" :key="index" class="post-card mb-6 p-6 rounded-xl shadow-lg bg-white">
+    <section v-if="isPostsVisible" class="mt-8 flex flex-col items-center gap-6">
+
+      <!-- Форма створення нового допису -->
+      <div v-if="isOwner" class="bg-white p-6 rounded-xl shadow-xl w-full max-w-2xl">
+        <h3 class="text-xl font-semibold text-indigo-700 mb-4">Новий допис</h3>
+        <input v-model="newPost.title" placeholder="Заголовок" class="input mb-2"/>
+        <textarea v-model="newPost.content" placeholder="Текст допису" class="input mb-2"></textarea>
+        <button @click="addPost" class="bg-indigo-600 text-white px-4 py-2 rounded-full">Опублікувати</button>
+      </div>
+
+      <!-- Існуючі дописи -->
+      <div
+          v-for="(post, index) in posts"
+          :key="index"
+          class="post-card p-6 rounded-xl shadow-lg bg-white w-full max-w-2xl"
+      >
         <h3 class="text-2xl font-semibold text-indigo-700">{{ post.title }}</h3>
         <p class="mt-4 text-gray-800">{{ post.content }}</p>
       </div>
     </section>
+
   </div>
+
+
 </template>
 
 <script>
@@ -101,6 +129,9 @@ export default {
       profile: null, // Інформація автора
       tiers: [],
       posts: [],
+      isOwner: false, // чи це сторінка поточного користувача
+      newTier: {title: '', price: '', description: ''},
+      newPost: {title: '', content: ''},
       isSubscriptionsVisible: true,
       isPostsVisible: false,
       isDonationsVisible: false,
@@ -115,8 +146,32 @@ export default {
 
   created() {
     this.loadAuthorData()
+    this.checkOwnership();
+
   },
   methods: {
+    async checkOwnership() {
+      const token = localStorage.getItem('jwt'); // або через authStore, якщо використовуєш Pinia/Vuex
+
+      if (!token) {
+        this.isOwner = false;
+        return;
+      }
+
+      try {
+        const response = await axios.get(`http://localhost:8081/author/${this.username}/is-owner`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        this.isOwner = response.data.isOwner === true;
+      } catch (error) {
+        console.error('Помилка при перевірці власника:', error);
+        this.isOwner = false;
+      }
+    },
+
     async loadAuthorData() {
       try {
         const response = await axios.get(`http://localhost:8081/author/${this.username}`);
@@ -124,6 +179,7 @@ export default {
 
         if (author) {
           this.profile = {
+            id: author.id,
             name: author.name,
             avatar: author.avatarUrl,
             followers: author.subscribers || 0,
@@ -152,7 +208,39 @@ export default {
         this.posts = [];
       }
     },
+    async addTier() {
+      if (!this.newTier.title || !this.newTier.price || !this.newTier.description) return;
+      try {
+        const token = localStorage.getItem('jwt');
+        const response = await axios.post(`http://localhost:8081/${this.profile.id}/tier`, this.newTier, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        });
+        this.tiers.push(response.data); // додаємо на фронті
+        this.newTier = {title: '', price: '', description: ''}; // очистити форму
+      } catch (e) {
+        console.error('Не вдалося додати тіру:', e);
+      }
+    },
 
+    async addPost() {
+      if (!this.newPost.title || !this.newPost.content) return;
+      try {
+        const token = localStorage.getItem('jwt');
+        const response = await axios.post(`http://localhost:8081/${this.profile.id}/post`, this.newPost, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        });
+
+
+        this.posts.unshift(response.data);
+        this.newPost = {title: '', content: ''};
+      } catch (e) {
+        console.error('Не вдалося створити допис:', e);
+      }
+    },
     showDonations() {
       this.isSubscriptionsVisible = false;
       this.isPostsVisible = false;
@@ -181,7 +269,7 @@ export default {
 </script>
 
 <style>
-.back_image{
+.back_image {
   background-image: url('src/assets/background.jpg');
   background-size: cover;
   background-position: center;
@@ -190,6 +278,7 @@ export default {
   width: 100%;
   position: relative;
 }
+
 /* Стилі для іконок */
 .social-icon {
   font-size: 2rem; /* Збільшуємо розмір іконок */
@@ -407,6 +496,7 @@ section.mt-8 {
 .post-card {
   margin-top: 20px; /* Встановлюємо однаковий відступ між формами */
 }
+
 .social-icon {
   font-size: 2rem; /* Збільшуємо розмір іконок */
   color: black; /* Базовий колір іконок */
@@ -416,5 +506,13 @@ section.mt-8 {
 
 .social-icon:hover {
   transform: scale(1.2); /* Збільшуємо іконку при наведенні */
+}
+
+.input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
 }
 </style>

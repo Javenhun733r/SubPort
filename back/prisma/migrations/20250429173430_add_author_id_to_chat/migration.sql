@@ -1,0 +1,9 @@
+-- AlterTable
+ALTER TABLE "Chat" ADD COLUMN     "authorId" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN     "creatorId" INTEGER NOT NULL DEFAULT 1;
+
+-- AddForeignKey
+ALTER TABLE "Chat" ADD CONSTRAINT "Chat_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Chat" ADD CONSTRAINT "Chat_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "Author"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

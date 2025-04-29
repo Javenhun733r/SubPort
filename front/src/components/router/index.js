@@ -8,6 +8,7 @@ import MainPage from "@/components/Pages/MainPage.vue";
 import AdminRequests from "@/components/Pages/AdminRequests.vue";
 import AddAuthor from "@/components/Pages/AddAuthor.vue";
 import ProfilePage from "@/components/Pages/ProfilePage.vue";
+import ChatPage from "@/components/Pages/ChatPage.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -52,6 +53,11 @@ const router = createRouter({
             path: '/profile',
             name: 'Profile page',
             component: ProfilePage,
+        },
+        {
+            path: '/chat',
+            name: 'ChatPage',
+            component: ChatPage,
         }
     ],
 });

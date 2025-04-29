@@ -8,7 +8,14 @@ import {
     checkAdmin,
     getAllAuthorRequests,
     approveAuthorRequest,
-    rejectAuthorRequest, getAuthors, updateProfile, getProfile
+    rejectAuthorRequest,
+    getAuthors,
+    updateProfile,
+    getProfile,
+    createPost,
+    createTier,
+    isOwner,
+    handleSubscriptionPurchase
 } from "../controllers/authorController.js"
 const router = express.Router();
 
@@ -22,5 +29,8 @@ router.delete('/requests/reject/:requestId',  rejectAuthorRequest);
 router.get("/authors", getAuthors);
 router.get('/profile', verifyToken, getProfile);
 router.put('/profile', verifyToken, updateProfile);
-
+router.post("/:id/post", verifyToken, createPost);
+router.post("/:id/tier", verifyToken, createTier);
+router.get("/author/:username/is-owner", isOwner);
+router.post('/subscribe/:tierId', verifyToken, handleSubscriptionPurchase);
 export default router;

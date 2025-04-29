@@ -19,7 +19,15 @@ model User {
   email           String           @unique @db.VarChar(191)
   password        String
   role            Role             @default(USER)
-  authorRequests  AuthorRequest[]  // Ось це додано
+  authorRequests  AuthorRequest[]
+  Author Author[]
+
+  ChatUser ChatUser[]
+
+  Message Message[]
+
+  Chat Chat[]
+  TierSubscription TierSubscription[]
 }
 
 
@@ -51,6 +59,10 @@ model Author {
   socials      Json?    // Масив об'єктів для соцмереж (Twitter, Instagram, тощо)
   posts        Post[]
   tiers        Tier[]
+  userId       Int     @default(1)
+  user         User    @relation(fields: [userId], references: [id])
+
+  Chat Chat[]
 }
 model Post {
   id        Int     @id @default(autoincrement())
@@ -66,10 +78,64 @@ model Tier {
   description String
   authorId  Int
   author    Author   @relation(fields: [authorId], references: [id])
+  chats       Chat[]   @relation("TierChats")
+
+  TierSubscription TierSubscription[]
 }
 
 enum RequestStatus {
   PENDING
   APPROVED
   REJECTED
+}
+model Chat {
+  id           Int         @id @default(autoincrement())
+  name         String
+  creatorId    Int          @default(1)
+  creator      User        @relation(fields: [creatorId], references: [id])
+
+  authorId     Int          @default(1)
+  author       Author      @relation(fields: [authorId], references: [id])
+
+  messages     Message[]
+  participants ChatUser[]
+  tierId       Int?
+  tier         Tier?       @relation("TierChats", fields: [tierId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+
+
+model ChatUser {
+  id     Int  @id @default(autoincrement())
+  chat   Chat @relation(fields: [chatId], references: [id])
+  chatId Int
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  @@unique([chatId, userId])
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  text      String
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  chatId    Int
+
+  sender    User     @relation(fields: [senderId], references: [id])
+  senderId  Int
+
+  createdAt DateTime @default(now())
+}
+model TierSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+
+  tierId    Int
+  tier      Tier     @relation(fields: [tierId], references: [id])
+
+  createdAt DateTime @default(now())
 }
