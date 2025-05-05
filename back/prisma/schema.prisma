@@ -21,13 +21,15 @@ model User {
   role            Role             @default(USER)
   authorRequests  AuthorRequest[]
   Author Author[]
-
+  isVerified      Boolean          @default(false)
   ChatUser ChatUser[]
 
   Message Message[]
 
   Chat Chat[]
   TierSubscription TierSubscription[]
+
+  Comment Comment[]
 }
 
 
@@ -70,6 +72,8 @@ model Post {
   content   String
   authorId  Int
   author    Author  @relation(fields: [authorId], references: [id])
+
+  Comment Comment[]
 }
 model Tier {
   id        Int      @id @default(autoincrement())
@@ -138,4 +142,13 @@ model TierSubscription {
   tier      Tier     @relation(fields: [tierId], references: [id])
 
   createdAt DateTime @default(now())
+}
+model Comment {
+  id        Int      @id @default(autoincrement())
+  text      String   // Текст коментаря
+  postId    Int      // Ідентифікатор поста, до якого коментар
+  post      Post     @relation(fields: [postId], references: [id])
+  userId    Int      // Ідентифікатор користувача, який залишив коментар
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now()) // Дата створення коментаря
 }

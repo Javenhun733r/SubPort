@@ -111,6 +111,31 @@
       >
         <h3 class="text-2xl font-semibold text-indigo-700">{{ post.title }}</h3>
         <p class="mt-4 text-gray-800">{{ post.content }}</p>
+
+        <!-- Коментарі -->
+        <div v-if="post.comments && post.comments.length" class="mt-6">
+          <h4 class="text-lg font-semibold text-indigo-600">Коментарі:</h4>
+          <div v-for="(comment, index) in post.comments" :key="index" class="bg-gray-100 p-4 mt-2 rounded-lg">
+            <p><strong>{{ comment.author }}:</strong> {{ comment.text }}</p>
+          </div>
+        </div>
+
+        <!-- Форма додавання коментаря -->
+        <div class="mt-4">
+          <textarea v-model="newComment[post.id]" class="input w-full" placeholder="Напишіть коментар..."></textarea>
+          <button @click="addComment(post.id)" class="bg-indigo-600 text-white px-4 py-2 rounded-full mt-2">Додати коментар</button>
+        </div>
+      </div>
+
+    </section>
+    <section v-if="similarAuthors.length" class="mt-12 px-4 relative z-10">
+      <h2 class="text-2xl font-bold text-center text-indigo-800 mb-6">Схожі автори</h2>
+      <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        <CreatorCard class="creator-card"
+                     v-for="creator in similarAuthors"
+                     :key="creator.username"
+                     :creator="creator"
+        />
       </div>
     </section>
 
@@ -124,10 +149,11 @@ import SubscriptionCard from '../SubscriptionCard/SubscriptionCard.vue'
 import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome'
 import axios from 'axios';
 import backgroundImage from '../../assets/background.jpg';
+import CreatorCard from "@/components/CreatorCard/CreatorCard.vue";
 
 
 export default {
-  components: {SubscriptionCard, FontAwesomeIcon},
+  components: {CreatorCard, SubscriptionCard, FontAwesomeIcon},
 
   props: ['username'],
   data() {
@@ -135,6 +161,8 @@ export default {
       profile: null, // Інформація автора
       tiers: [],
       posts: [],
+      similarAuthors: [],
+      newComment: {},
       isOwner: false, // чи це сторінка поточного користувача
       newTier: {title: '', price: '', description: '', isChat: false},
       newPost: {title: '', content: ''},
@@ -155,9 +183,55 @@ export default {
     this.checkOwnership();
 
   },
+  watch: {
+    username(newUsername, oldUsername) {
+      this.loadAuthorData();
+      this.checkOwnership();
+    }
+  },
   methods: {
+    async addComment(postId) {
+      const commentText = this.newComment[postId];
+
+      if (!commentText) {
+        alert('Будь ласка, напишіть коментар!');
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('jwt');
+        const response = await axios.post(`http://localhost:8081/${postId}/comment`, {
+          text: commentText,
+        }, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        });
+
+        const post = this.posts.find(p => p.id === postId);
+
+        // Якщо немає comments (наприклад, новий пост) — ініціалізуємо
+        if (!post.comments) {
+          this.$set(post, 'comments', []);
+        }
+
+        // Додаємо новий коментар
+        post.comments.push({
+          id: response.data.id,
+          text: response.data.text,
+          author: response.data.user?.name || 'Анонім',
+          createdAt: response.data.createdAt
+        });
+
+        this.newComment[postId] = '';
+      } catch (e) {
+        console.error('Не вдалося додати коментар:', e);
+      }
+    },
+
+
     async checkOwnership() {
-      const token = localStorage.getItem('jwt'); // або через authStore, якщо використовуєш Pinia/Vuex
+      const token = localStorage.getItem('jwt');
 
       if (!token) {
         this.isOwner = false;
@@ -198,9 +272,29 @@ export default {
             })) : []
 
           };
-          console.log(this.profile.socials);
           this.tiers = author.tiers || [];
-          this.posts = author.posts || [];
+          this.posts = (author.posts || []).map(p => ({
+            ...p,
+            comments: (p.Comment || []).map(c => ({
+              id: c.id,
+              text: c.text,
+              author: c.user?.name || 'Анонім',
+              createdAt: c.createdAt
+            }))
+          }));
+          const genre = author.genre; // якщо є поле жанру
+          if (genre) {
+            try {
+              const similarResponse = await axios.get(`http://localhost:8081/authors/${this.username}/similar`);
+              // Фільтруємо поточного автора і беремо перші 3
+              this.similarAuthors = similarResponse.data
+                  .filter(a => a.username !== this.username)
+                  .slice(0, 3);
+            } catch (e) {
+              console.error('Не вдалося завантажити схожих авторів:', e);
+            }
+          }
+
         }
       } catch (error) {
         console.error('Error fetching author data:', error);
@@ -475,13 +569,8 @@ section.mt-8 {
   padding: 20px;
   width: 80%; /* Встановлюємо ширину картки */
   max-width: 600px; /* Максимальна ширина картки */
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.post-card:hover {
-  transform: scale(1.05);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-}
 
 .post-card h3 {
   color: #4a4a4a;
@@ -549,5 +638,53 @@ section.mt-8 {
   border-radius: 8px;
   border: 1px solid #ccc;
   margin-bottom: 10px;
+}
+/* Стиль для коментарів */
+.post-card .mt-6 {
+  padding-left: 1.5rem;
+}
+
+.post-card .mt-2 {
+  margin-top: 10px;
+}
+
+.post-card .input {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.post-card button {
+  background-color: #4c51bf;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  transition: background-color 0.3s ease;
+}
+
+.post-card button:hover {
+  background-color: #434190;
+}
+.creator-card {
+  margin-top: 10px;
+  transition: all 0.3s ease;
+  border-radius: 20px;
+  padding: 1.5rem;
+  background: linear-gradient(145deg, rgba(234, 231, 255, 1), rgba(240, 247, 255, 1));
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #E5E7EB;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-grow: 1;
+}
+
+
+
+.creator-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 </style>

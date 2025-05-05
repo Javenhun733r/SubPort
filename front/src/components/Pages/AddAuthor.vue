@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-blue-200 p-8 flex flex-col items-center">
-    <h1 class="text-4xl font-bold text-indigo-900 mb-10 shadow-xl px-8 py-4 rounded-full bg-white border-4 border-indigo-600">Додати нового автора</h1>
+    <h1 class="text-4xl font-bold text-indigo-900 mb-10 shadow-xl px-8 py-4 rounded-full bg-white border-4 border-indigo-600">Додати нову сторінку автора</h1>
 
     <div class="w-full max-w-2xl bg-white p-10 rounded-3xl shadow-2xl space-y-8">
       <form @submit.prevent="submitForm" class="space-y-6">

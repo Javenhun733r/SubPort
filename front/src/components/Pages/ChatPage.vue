@@ -1,8 +1,6 @@
 <template>
   <div class="chat-container">
     <aside class="sidebar">
-
-
       <div
           class="chat-item"
           v-for="chat in chats"
@@ -13,7 +11,6 @@
         {{ chat.name }}
         <button class="delete-btn" @click.stop="deleteChat(chat.id)">✕</button>
       </div>
-
 
       <div class="user" v-for="user in users" :key="user.id">
         {{ user.name }}
@@ -35,11 +32,9 @@
   </div>
 </template>
 
-
 <script setup>
-import {ref, onMounted, onBeforeUnmount} from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
-
 
 const chats = ref([]);
 const selectedChatId = ref(null);
@@ -48,10 +43,8 @@ const newMessage = ref('');
 let socket;
 
 onMounted(async () => {
-
   const token = localStorage.getItem('jwt');
   socket = new WebSocket(`ws://localhost:8081?token=${token}`);
-
 
   socket.addEventListener('open', () => {
     socket.send(JSON.stringify({ type: 'join', chatId: selectedChatId.value }));
@@ -59,16 +52,15 @@ onMounted(async () => {
 
   socket.addEventListener('message', (event) => {
     const msg = JSON.parse(event.data);
-
     if (msg.chatId === selectedChatId.value) {
       messages.value.push(msg);
     }
   });
 
+
   try {
-    const token = localStorage.getItem('jwt');
     const res = await axios.get('http://localhost:8081/chats/user/', {
-      headers: {Authorization: `Bearer ${token}`}
+      headers: { Authorization: `Bearer ${token}` },
     });
     chats.value = res.data;
   } catch (err) {
@@ -80,17 +72,16 @@ onBeforeUnmount(() => {
   if (socket) socket.close();
 });
 
-
 async function selectChat(chatId) {
   selectedChatId.value = chatId;
   messages.value = [];
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ type: 'join', chatId }));
   }
+
   try {
-    const token = localStorage.getItem('jwt');
     const res = await axios.get(`http://localhost:8081/chats/${chatId}/messages`, {
-      headers: {Authorization: `Bearer ${token}`}
+      headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` },
     });
     messages.value = res.data.map(msg => ({
       id: msg.id,
@@ -125,29 +116,25 @@ async function sendMessage() {
   };
 
   try {
-    const token = localStorage.getItem('jwt');
-    const res = await axios.post(`http://localhost:8081/chats/${selectedChatId.value}/messages`, msg, {
-      headers: { Authorization: `Bearer ${token}` }
+    await axios.post(`http://localhost:8081/chats/${selectedChatId.value}/messages`, msg, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` },
     });
 
-    // Не додаємо повідомлення локально після HTTP запиту
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({
         ...msg,
         author: 'You', // Пишемо "You" тільки для відправника
-        id: Date.now()
+        id: Date.now(),
       }));
     }
 
-    // очищаємо поле введення
     newMessage.value = '';
   } catch (err) {
     console.error('Failed to send message', err);
   }
 }
-
-
 </script>
+
 
 <style scoped>
 .chat-container {

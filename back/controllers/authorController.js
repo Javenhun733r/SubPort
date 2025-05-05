@@ -2,25 +2,39 @@ import prisma from "../db/db.config.js";
 import jwt from 'jsonwebtoken';
 
 export const getAuthorByUsername = async (req, res) => {
-    const {username} = req.params;
+    const { username } = req.params;
 
     try {
         const author = await prisma.author.findUnique({
-            where: {username},
+            where: { username },
             include: {
-                posts: true,
-                tiers: true,  // Підписки
+                posts: {
+                    include: {
+                        Comment: {
+                            include: {
+                                user: {
+                                    select: {
+                                        id: true,
+                                        name: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                tiers: true,
             }
         });
 
-        if (!author) return res.status(404).json({message: 'Author not found'});
+        if (!author) return res.status(404).json({ message: 'Author not found' });
 
-        res.json(author); // Тепер повертаємо також інформацію про підписки
+        res.json(author);
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: 'Server error'});
+        res.status(500).json({ message: 'Server error' });
     }
 };
+
 
 
 export const createAuthor = async (req, res) => {
@@ -182,12 +196,29 @@ export const rejectAuthorRequest = async (req, res) => {
     }
 };
 
-export const checkAdmin = (req, res, next) => {
-    if (req.user?.role !== 'ADMIN') {
-        return res.status(403).json({message: 'Access denied'});
+export const checkAdmin = async (req, res, next) => {
+    const userId = req.userId;
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: {id: Number(userId)},
+        });
+
+        if (!user) {
+            return res.status(404).json({message: 'User not found'});
+        }
+
+        if (user.role !== 'ADMIN') {
+            return res.status(403).json({message: 'Access denied'});
+        }
+
+        next();  // Викликаємо наступний middleware, якщо користувач є адміном
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({message: 'Server error'});
     }
-    next();
 };
+
 export const getAuthors = async (req, res) => {
     try {
         const authors = await prisma.author.findMany();
@@ -201,28 +232,42 @@ export const getAuthors = async (req, res) => {
 export const getProfile = async (req, res) => {
     try {
         const userId = req.userId;
-        const user = await prisma.author.findUnique({
-            where: {id: userId},
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
             select: {
                 id: true,
                 name: true,
-                username: true,
-                bio: true,
-                genre: true,
-                socials: true,
+                email: true,
+                role: true,
             },
         });
 
         if (!user) {
-            return res.status(404).json({error: "User not found"});
+            return res.status(404).json({ error: "User not found" });
         }
 
-        return res.status(200).json(user);
+        const userAuthorPages = await prisma.author.findMany({
+            where: { userId: userId },
+            select: {
+                id: true,
+                name: true,
+                username: true,
+                genre: true,
+                avatarUrl: true,
+            }
+        });
+
+        return res.status(200).json({
+            user,
+            authorPages: userAuthorPages
+        });
     } catch (error) {
         console.error(error);
-        res.status(500).json({error: "Internal Server Error"});
+        res.status(500).json({ error: "Internal Server Error" });
     }
 };
+
 export const updateProfile = async (req, res) => {
     const {name, username, bio, genre, socials} = req.body;
     const userId = req.userId;
@@ -370,6 +415,121 @@ export const subscribeToTier = async (req, res) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: 'Сталася помилка при підписці на рівень' });
+    }
+};
+export const createComment = async (req, res) => {
+    const { text } = req.body;
+    const userId = req.userId;  // Витягуємо userId з JWT
+    const postId = Number(req.params.postId);
+
+    if (!text || !userId) {
+        return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    try {
+        const post = await prisma.post.findUnique({
+            where: { id: postId }
+        });
+
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        // Створюємо коментар
+        const newComment = await prisma.comment.create({
+            data: {
+                text,
+                postId: postId,
+                userId: Number(userId)
+            },
+            include: {
+                user: {
+                    select: { name: true }  // Додати ім’я користувача в результат (опціонально)
+                }
+            }
+        });
+
+        res.status(201).json(newComment);
+    } catch (err) {
+        console.error('Error creating comment:', err);
+        res.status(500).json({ message: 'Failed to create comment' });
+    }
+};
+
+export const getCommentsByPost = async (req, res) => {
+
+    try {
+        const postId = req.params.postId;
+        const comments = await prisma.comment.findMany({
+            where: { postId: Number(postId) },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                }
+            }
+        });
+
+        res.status(200).json(comments);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to get comments' });
+    }
+};
+export const deleteComment = async (req, res) => {
+    const { commentId } = req.params;
+
+    try {
+        const comment = await prisma.comment.findUnique({
+            where: { id: Number(commentId) }
+        });
+
+        if (!comment) {
+            return res.status(404).json({ message: 'Comment not found' });
+        }
+
+        // Перевіряємо, чи є у користувача доступ до цього коментаря
+        if (comment.userId !== req.userId) {
+            return res.status(403).json({ message: 'You are not authorized to delete this comment' });
+        }
+
+        await prisma.comment.delete({
+            where: { id: Number(commentId) }
+        });
+
+        res.status(200).json({ message: 'Comment deleted' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to delete comment' });
+    }
+};
+export const getSimilarAuthors = async (req, res) => {
+    const { username } = req.params;
+
+    try {
+        // Знаходимо автора за username
+        const currentAuthor = await prisma.author.findUnique({
+            where: { username },
+            select: { genre: true }
+        });
+
+        if (!currentAuthor) {
+            return res.status(404).json({ message: 'Author not found' });
+        }
+
+        const similarAuthors = await prisma.$queryRaw`
+            SELECT * FROM "Author"
+            WHERE genre = ${currentAuthor.genre} AND username != ${username}
+            ORDER BY RANDOM()
+            LIMIT 3
+        `;
+
+        res.status(200).json(similarAuthors);
+    } catch (err) {
+        console.error('Error fetching similar authors:', err);
+        res.status(500).json({ message: 'Failed to fetch similar authors' });
     }
 };
 

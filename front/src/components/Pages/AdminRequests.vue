@@ -66,7 +66,8 @@ import axios from 'axios'
 export default {
   data() {
     return {
-      requests: []
+      requests: [],
+      token : localStorage.getItem('jwt'),
     }
   },
   async created() {
@@ -82,11 +83,19 @@ export default {
       }
     },
     async approve(id) {
-      await axios.post(`http://localhost:8081/requests/approve/${id}`)
+      await axios.post(`http://localhost:8081/requests/approve/${id}`,{}, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
       this.requests = this.requests.filter(r => r.id !== id)
     },
     async reject(id) {
-      await axios.post(`http://localhost:8081/requests/reject/${id}`)
+      await axios.delete(`http://localhost:8081/requests/reject/${id}`, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
       this.requests = this.requests.filter(r => r.id !== id)
     }
   }

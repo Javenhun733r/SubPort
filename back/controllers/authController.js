@@ -1,6 +1,25 @@
 import prisma from "../db/db.config.js";
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
+export const sendVerificationEmail = async (email, token) => {
+    const transporter = nodemailer.createTransport({
+        service: "gmail", // чи інший сервіс
+        auth: {
+            user: process.env.EMAIL, // твоя пошта
+            pass: process.env.EMAIL_PASSWORD, // пароль до пошти
+        },
+    });
+
+    const mailOptions = {
+        from: process.env.EMAIL,
+        to: email,
+        subject: "Confirm your email address",
+        html: `<h1>Welcome!</h1><p>Click the link below to confirm your email address:</p><a href="${process.env.FRONTEND_URL}/verify-email/${token}">Verify Email</a>`,
+    };
+
+    await transporter.sendMail(mailOptions);
+};
 
 export const RegisterController = async (req, res) => {
     try {
@@ -24,20 +43,15 @@ export const RegisterController = async (req, res) => {
             },
         });
 
-        // Створення payload без пароля
-        const payload = {
-            id: newUser.id,
-            name: newUser.name,
-            email: newUser.email,
-        };
+        // Генерація токену для підтвердження пошти
+        const verificationToken = jwt.sign({ id: newUser.id, email: newUser.email }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" });
+        // Надсилання листа для підтвердження пошти
+        await sendVerificationEmail(newUser.email, verificationToken);
 
         return res.status(201).json({
-            message: "User registered successfully",
-            token,
+            message: "User registered successfully. Please check your email to confirm your account.",
         });
-
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: "Internal Server Error" });
@@ -61,9 +75,9 @@ export const SignInController = async (req, res) => {
         }
         const payload = {
             id : user.id,
-            name : user.name,
-            email : user.email,
-            password : user.password
+            role: user.role,
+            name: user.name,
+            email: user.email
         }
         const token = jwt.sign(payload, process.env.JWT_SECRET);
 
@@ -73,3 +87,30 @@ export const SignInController = async (req, res) => {
         return res.json({error: "Internal Server Error"}).status(500);
     }
 }
+export const VerifyEmailController = async (req, res) => {
+    try {
+        const { token } = req.params;
+
+        // Декодуємо токен
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const user = await prisma.user.findUnique({
+            where: { email: decoded.email },
+        });
+
+        if (!user) {
+            return res.status(400).json({ error: "User not found" });
+        }
+
+        // Оновлюємо статус користувача як підтверджений
+        await prisma.user.update({
+            where: { email: decoded.email },
+            data: { isVerified: true }, // необхідно додати поле isVerified в модель User
+        });
+
+        return res.status(200).json({ message: "Email verified successfully!" });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+};

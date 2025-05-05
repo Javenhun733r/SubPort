@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gradient-to-b from-purple-100 to-blue-100 p-6">
     <!-- Header -->
-    <h1 class="text-4xl font-bold text-center text-indigo-800 mb-6 shadow-md px-4 py-2 rounded-lg bg-white">Знайди свого крієтора</h1>
+    <h1 class="text-4xl font-bold text-center text-indigo-800 mb-6 shadow-md px-4 py-2 rounded-lg bg-white">Знайди свого автора</h1>
 
     <!-- Search + Filter -->
     <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">

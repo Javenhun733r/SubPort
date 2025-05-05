@@ -8,28 +8,32 @@
         <input type="email" id="email" v-model="email" required>
       </div>
       <div class="form-group">
-        <label >Логін</label>
+        <label>Логін</label>
         <input type="text" id="name" v-model="name" required>
       </div>
       <div class="form-group">
-        <label >Пароль</label>
+        <label>Пароль</label>
         <input type="password" id="password" v-model="password" required>
       </div>
       <button type="submit" class="cta-button">Реєстрація</button>
     </form>
+
+    <div v-if="showMessage" class="message">
+      <p>Будь ласка, перевірте вашу електронну пошту, щоб підтвердити акаунт!</p>
+    </div>
   </div>
 </template>
 
 <script>
 import axios from 'axios';
 
-
 export default {
   data() {
     return {
       name: "",
       email: "",
-      password: ""
+      password: "",
+      showMessage: false,  // Для відображення сповіщення
     };
   },
   methods: {
@@ -43,12 +47,18 @@ export default {
       try {
         const response = await axios.post("http://localhost:8081/register", userData);
         const token = response.data.token;
-
+        // Показуємо повідомлення, що потрібно перевірити пошту
+        this.showMessage = true;
         if (token) {
           localStorage.setItem("jwt", token);
           console.log("JWT збережено:", token);
 
-          window.location.href = '/items';
+
+
+          // Перенаправлення через 5 секунд
+          setTimeout(() => {
+            window.location.href = '/items';
+          }, 5000);
         } else {
           console.error("JWT не отримано після реєстрації");
         }
@@ -104,5 +114,11 @@ button {
 
 button:hover {
   background-color: #0056b3;
+}
+
+.message {
+  margin-top: 20px;
+  color: #28a745;
+  font-weight: bold;
 }
 </style>
