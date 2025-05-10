@@ -142,6 +142,9 @@ model TierSubscription {
   tier      Tier     @relation(fields: [tierId], references: [id])
 
   createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  ReminderLog ReminderLog[]
 }
 model Comment {
   id        Int      @id @default(autoincrement())
@@ -152,3 +155,11 @@ model Comment {
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now()) // Дата створення коментаря
 }
+
+model ReminderLog {
+  id              Int               @id @default(autoincrement())
+  subscriptionId  Int
+  sentAt          DateTime          @default(now())
+  subscription    TierSubscription @relation(fields: [subscriptionId], references: [id])
+}
+

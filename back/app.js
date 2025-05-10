@@ -2,6 +2,8 @@ import express from 'express';
 import authRoutes from './routes/authRoutes.js';
 import authorRoutes from './routes/authorRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import './cron/emailReminder.js';
 import cors from 'cors';
 import url from 'url';
 import { WebSocketServer } from 'ws';
@@ -14,7 +16,7 @@ app.use(express.json());
 app.use('/', authRoutes);
 app.use('/', authorRoutes);
 app.use('/', chatRoutes);
-
+app.use('/api', paymentRoutes);
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 

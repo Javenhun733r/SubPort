@@ -1,148 +1,128 @@
 <template>
-  <div
-      :style="backgroundStyle" class="back_image ">
+  <div class="author-profile-page">
+    <section v-if="profile" class="profile-hero-section">
+      <div class="avatar-glow-container">
+        <img :src="profile.avatar || '/default-avatar.png'" :alt="profile.name" class="profile-avatar"/>
+      </div>
+      <h1 class="profile-name">{{ profile.name }}</h1>
+      <p v-if="profile.fullName && profile.fullName !== profile.name" class="profile-full-name">{{ profile.fullName }}</p>
+      <p class="profile-followers">{{ profile.followers }} підписників</p>
+      <p v-if="profile.bio" class="profile-bio">{{ profile.bio }}</p>
 
-
-    <!-- Profile Section -->
-    <section class="text-center mb-8 relative z-10">
-      <img :src="profile.avatar" class="..."/>
-      <h2>{{ profile.name }}</h2>
-      <p>{{ profile.followers }} підписників</p>
-      <p>{{ profile.fullName }}</p>
-      <p>{{ profile.bio }}</p>
-
-      <div class="flex justify-center gap-6 mt-4">
-        <a v-for="(social, index) in profile.socials" :key="index" :href="social.link" target="_blank"
-           class="social-icon">
-          <font-awesome-icon :icon="`fa-brands fa-${social.name}`"/>
+      <div v-if="profile.socials && profile.socials.length" class="profile-socials">
+        <a v-for="social in profile.socials" :key="social.name" :href="social.link" target="_blank" rel="noopener noreferrer" class="social-link" :title="social.name">
+          <font-awesome-icon :icon="['fab', social.name.toLowerCase()]" />
         </a>
       </div>
     </section>
+    <div v-else class="loading-placeholder">Завантаження профілю...</div>
 
-    <!-- Tabs (Кнопки) -->
-    <div class="flex justify-center space-x-6 mb-8 relative z-10">
-      <button @click="showDonations"
-              class="px-6 py-2 rounded-full bg-indigo-600 text-black font-semibold hover:bg-indigo-700 transition-all">
+
+    <div class="tabs-container">
+      <button @click="showDonations()" :class="['tab-button', { 'active': isDonationsVisible }]">
         Разовий донат
       </button>
-      <button @click="showSubscriptions"
-              class="px-6 py-2 rounded-full bg-indigo-700 text-black font-semibold hover:bg-indigo-800 transition-all">
+      <button @click="showSubscriptions()" :class="['tab-button', { 'active': isSubscriptionsVisible }]">
         Підписка
       </button>
-      <button @click="showPosts"
-              class="px-6 py-2 rounded-full bg-indigo-600 text-black font-semibold hover:bg-indigo-700 transition-all">
+      <button @click="showPosts()" :class="['tab-button', { 'active': isPostsVisible }]">
         Дописи
       </button>
     </div>
 
-    <!-- Donation Form -->
-    <div v-if="isDonationsVisible" class="donation-form bg-white p-6 rounded-lg shadow-lg relative z-10">
-      <h3 class="text-xl font-semibold mb-4 text-indigo-700">Підтримати разовим донатом</h3>
-      <div class="flex gap-4 mb-6">
-        <button @click="donationAmount = 100" class="donation-btn">100₴</button>
-        <button @click="donationAmount = 500" class="donation-btn">500₴</button>
-        <button @click="donationAmount = 1000" class="donation-btn">1000₴</button>
-        <button @click="donationAmount = 2000" class="donation-btn">2000₴</button>
-      </div>
-
-      <div class="mb-4">
-        <label for="donationAmountInput" class="block text-sm text-gray-700">Введіть суму донату:</label>
-        <input
-            id="donationAmountInput"
-            v-model="donationAmount"
-            type="number"
-            class="mt-2 p-2 w-full rounded-md border border-gray-300"
-            placeholder="Введіть суму"
-            min="1"
-        />
-      </div>
-
-      <button @click="handleDonation"
-              class="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-full w-full mt-4 hover:bg-indigo-700">
-        Задонатити
-      </button>
-    </div>
-
-    <section v-if="isSubscriptionsVisible"
-             class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 relative z-10">
-      <!-- Карточки існуючих тирів -->
-      <SubscriptionCard
-          class="subscription-card"
-          v-for="tier in tiers"
-          :key="tier.title"
-          :title="tier.title"
-          :price="tier.price"
-          :description="tier.description"
-          :isChat="tier.isChat"
-          @addUserToChat="addUserToChat"
-      />
-
-      <div v-if="isOwner" class="bg-white p-6 rounded-xl shadow-xl">
-        <h3 class="text-xl font-semibold text-indigo-700 mb-4">Додати нову підписку</h3>
-        <input v-model="newTier.title" placeholder="Назва" class="input mb-2"/>
-        <input v-model="newTier.price" type="number" placeholder="Ціна (₴)" class="input mb-2"/>
-        <textarea v-model="newTier.description" placeholder="Опис" class="input mb-2"></textarea>
-
-        <label class="flex items-center mb-4 text-sm text-gray-700">
-          <input type="checkbox" v-model="newTier.isChat" class="mr-2">
-          Додати підписників до чату
-        </label>
-
-        <button @click="addTier" class="bg-indigo-600 text-white px-4 py-2 rounded-full">Додати підписку</button>
-      </div>
-    </section>
-
-    <!-- User Posts Section -->
-    <section v-if="isPostsVisible" class="mt-8 flex flex-col items-center gap-6">
-
-      <!-- Форма створення нового допису -->
-      <div v-if="isOwner" class="bg-white p-6 rounded-xl shadow-xl w-full max-w-2xl">
-        <h3 class="text-xl font-semibold text-indigo-700 mb-4">Новий допис</h3>
-        <input v-model="newPost.title" placeholder="Заголовок" class="input mb-2"/>
-        <textarea v-model="newPost.content" placeholder="Текст допису" class="input mb-2"></textarea>
-        <button @click="addPost" class="bg-indigo-600 text-white px-4 py-2 rounded-full">Опублікувати</button>
-      </div>
-
-      <!-- Існуючі дописи -->
-      <div
-          v-for="(post, index) in posts"
-          :key="index"
-          class="post-card p-6 rounded-xl shadow-lg bg-white w-full max-w-2xl"
-      >
-        <h3 class="text-2xl font-semibold text-indigo-700">{{ post.title }}</h3>
-        <p class="mt-4 text-gray-800">{{ post.content }}</p>
-
-        <!-- Коментарі -->
-        <div v-if="post.comments && post.comments.length" class="mt-6">
-          <h4 class="text-lg font-semibold text-indigo-600">Коментарі:</h4>
-          <div v-for="(comment, index) in post.comments" :key="index" class="bg-gray-100 p-4 mt-2 rounded-lg">
-            <p><strong>{{ comment.author }}:</strong> {{ comment.text }}</p>
+    <transition name="fade-content" mode="out-in">
+      <div  class="content-area">
+        <div v-if="isDonationsVisible" class="content-card donation-form-section">
+          <h3 class="section-subtitle">Підтримати разовим донатом</h3>
+          <div class="donation-presets">
+            <button @click="donationAmount = 100" :class="['preset-amount-button', {'selected': donationAmount === 100}]">100₴</button>
+            <button @click="donationAmount = 500" :class="['preset-amount-button', {'selected': donationAmount === 500}]">500₴</button>
+            <button @click="donationAmount = 1000" :class="['preset-amount-button', {'selected': donationAmount === 1000}]">1000₴</button>
+            <button @click="donationAmount = 2000" :class="['preset-amount-button', {'selected': donationAmount === 2000}]">2000₴</button>
           </div>
+          <div class="form-group">
+            <label for="donationAmountInput" class="form-label">Або введіть свою суму:</label>
+            <input id="donationAmountInput" v-model.number="donationAmount" type="number" class="input-field" placeholder="Сума, ₴" min="1"/>
+          </div>
+          <button @click="handleDonation" class="cta-button main-action-button">
+            Задонатити {{ donationAmount ? donationAmount + '₴' : '' }}
+          </button>
         </div>
 
-        <!-- Форма додавання коментаря -->
-        <div class="mt-4">
-          <textarea v-model="newComment[post.id]" class="input w-full" placeholder="Напишіть коментар..."></textarea>
-          <button @click="addComment(post.id)" class="bg-indigo-600 text-white px-4 py-2 rounded-full mt-2">Додати коментар</button>
-        </div>
+        <section v-if="isSubscriptionsVisible" class="content-card subscriptions-section">
+          <h3 class="section-subtitle">Обрати рівень підписки</h3>
+          <div class="subscriptions-grid">
+            <SubscriptionCard
+                v-for="tier in tiers"
+                :key="tier.id" :id="tier.id"
+                :title="tier.title"
+                :price="tier.price"
+                :description="tier.description"
+                :isChat="tier.isChat"
+                :username="profile.name"
+                @addUserToChat="addUserToChat"
+            />
+            <div v-if="isOwner" class="add-new-card new-tier-form">
+              <h4 class="text-lg font-semibold text-cyan-400 mb-3">Додати нову підписку</h4>
+              <input v-model="newTier.title" placeholder="Назва рівня" class="input-field mb-2"/>
+              <input v-model.number="newTier.price" type="number" placeholder="Ціна (₴)" class="input-field mb-2"/>
+              <textarea v-model="newTier.description" placeholder="Опис переваг" class="input-field mb-3" rows="3"></textarea>
+              <label class="flex items-center mb-4 text-sm text-gray-300">
+                <input type="checkbox" v-model="newTier.isChat" class="form-checkbox mr-2">
+                Додати підписників до приватного чату
+              </label>
+              <button @click="addTier" class="cta-button secondary-action-button">Додати рівень</button>
+            </div>
+          </div>
+        </section>
+
+        <section v-if="isPostsVisible" class="posts-section">
+          <h3 class="section-subtitle text-center">Дописи автора</h3>
+          <div v-if="isOwner" class="content-card new-post-form">
+            <h4 class="text-lg font-semibold text-cyan-400 mb-3">Створити новий допис</h4>
+            <input v-model="newPost.title" placeholder="Заголовок допису" class="input-field mb-2"/>
+            <textarea v-model="newPost.content" placeholder="Що у вас нового?" class="input-field mb-3" rows="4"></textarea>
+            <button @click="addPost" class="cta-button main-action-button">Опублікувати</button>
+          </div>
+
+          <div v-if="posts.length > 0" class="posts-list">
+            <div v-for="post in posts" :key="post.id" class="post-item-card">
+              <h4 class="post-title">{{ post.title }}</h4>
+              <p class="post-content">{{ post.content }}</p>
+              <p class="post-date">{{ post.createdAt}}</p>
+
+              <div v-if="post.comments && post.comments.length" class="comments-section">
+                <h5 class="text-sm font-semibold text-cyan-500 mb-1">Коментарі:</h5>
+                <div v-for="comment in post.comments" :key="comment.id" class="comment-item">
+                  <strong class="text-gray-300">{{ comment.author }}:</strong> {{ comment.text }}
+                </div>
+              </div>
+              <div class="add-comment-form">
+                <textarea v-model="newComment[post.id]" class="input-field comment-textarea" placeholder="Ваш коментар..."></textarea>
+                <button @click="addComment(post.id)" class="cta-button secondary-action-button comment-button">Відправити</button>
+              </div>
+            </div>
+          </div>
+          <div v-else-if="!isOwner" class="content-card text-center py-8">
+            <p class="text-gray-400">Автор ще не опублікував жодного допису.</p>
+          </div>
+        </section>
       </div>
+    </transition>
 
-    </section>
-    <section v-if="similarAuthors.length" class="mt-12 px-4 relative z-10">
-      <h2 class="text-2xl font-bold text-center text-indigo-800 mb-6">Схожі автори</h2>
-      <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-        <CreatorCard class="creator-card"
-                     v-for="creator in similarAuthors"
-                     :key="creator.username"
-                     :creator="creator"
+    <section v-if="similarAuthors.length" class="similar-authors-section">
+      <h2 class="section-subtitle text-center">Схожі автори</h2>
+      <div class="creators-grid">
+        <CreatorCard
+            v-for="creator in similarAuthors"
+            :key="creator.username"
+            :creator="creator"
         />
       </div>
     </section>
-
   </div>
-
-
 </template>
+
 
 <script>
 import SubscriptionCard from '../SubscriptionCard/SubscriptionCard.vue'
@@ -150,6 +130,7 @@ import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome'
 import axios from 'axios';
 import backgroundImage from '../../assets/background.jpg';
 import CreatorCard from "@/components/CreatorCard/CreatorCard.vue";
+import {formatDate} from "@vueuse/shared";
 
 
 export default {
@@ -385,306 +366,250 @@ export default {
       this.isPostsVisible = true;
       this.isDonationsVisible = false;
     },
-    handleDonation() {
-      if (this.donationAmount > 0) {
-        alert(`Дякуємо за ваш донат у розмірі ${this.donationAmount}₴!`);
-        this.donationAmount = null;  // Очищаємо поле після донату
-      } else {
-        alert('Будь ласка, введіть коректну суму для донату.');
+    async handleDonation() {
+      if (!this.donationAmount || this.donationAmount < 1) {
+        alert("Введіть коректну суму");
+        return;
+      }
+
+      try {
+        const response = await axios.post("http://localhost:8081/api/create-donation", {
+          amount: this.donationAmount,
+          username: this.username
+        });
+
+        this.liqpayData = response.data.data;
+        this.liqpaySignature = response.data.signature;
+
+        // Створюємо HTML форму для Liqpay
+        const form = document.createElement("form");
+        form.action = "https://www.liqpay.ua/api/3/checkout"; // URL Liqpay для редиректу
+        form.method = "POST";
+        form.target = "_blank"; // Відкриває сторінку в новій вкладці
+
+        // Додаємо дані для Liqpay в форму
+        const dataInput = document.createElement("input");
+        dataInput.type = "hidden";
+        dataInput.name = "data";
+        dataInput.value = this.liqpayData;
+
+        const signatureInput = document.createElement("input");
+        signatureInput.type = "hidden";
+        signatureInput.name = "signature";
+        signatureInput.value = this.liqpaySignature;
+
+        form.appendChild(dataInput);
+        form.appendChild(signatureInput);
+
+        // Додаємо форму на сторінку та відправляємо
+        document.body.appendChild(form);
+        form.submit();
+      } catch (err) {
+        console.error("Помилка створення платежу:", err);
       }
     }
+
+
   }
 }
 </script>
 
-<style>
-.back_image {
-  background-image: url('src/assets/background.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  min-height: 91vh;
-  width: 100%;
-  position: relative;
+<style scoped>
+/* Припускаємо, що глобальний фон #121828 та шрифт "Raleway" встановлені */
+.author-profile-page {
+  /* background-color: #121828; -- Якщо не глобально, то тут */
+  min-height: 100vh;
+  color: #e0e0e0;
+  font-family: "Raleway", sans-serif;
+  padding: 1.5rem 1rem;
 }
-
-/* Стилі для іконок */
-.social-icon {
-  font-size: 2rem; /* Збільшуємо розмір іконок */
-  color: black; /* Базовий колір іконок */
-  transition: transform 0.3s ease, color 0.3s ease; /* Плавна анімація для кольору та трансформації */
-  padding-bottom: 20px;
-}
-
-.social-icon:hover {
-  transform: scale(1.2); /* Збільшуємо іконку при наведенні */
-}
-
-/* Стилі для сітки */
-.grid {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.grid-cols-1 {
-  grid-template-columns: repeat(1, 1fr);
-}
-
-.sm\:grid-cols-2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.md\:grid-cols-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.lg\:grid-cols-4 {
-  grid-template-columns: repeat(4, 1fr);
-}
-
-/* Стиль для кнопок */
-button {
-  transition: background-color 0.3s ease, transform 0.3s ease;
-}
-
-button:hover {
-  transform: scale(1.05);
-}
-
-/* Стилі для профілю */
-.text-indigo-100 {
-  color: #e0e7ff;
-}
-
-.text-gray-600 {
-  color: #4b5563;
-}
-
-.text-gray-700 {
-  color: #374151;
-}
-
-/* Тіні */
-.shadow-2xl {
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-}
-
-/* Медіа-запити */
-@media (max-width: 768px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (min-width: 640px) {
-  .sm\:grid-cols-2 {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (min-width: 768px) {
-  .md\:grid-cols-3 {
-    grid-template-columns: repeat(3, 1fr);
-  }
+  .author-profile-page { padding: 2.5rem; }
 }
 
-@media (min-width: 1024px) {
-  .lg\:grid-cols-4 {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-/* Стилі для тексту над картками */
-h2 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
-  color: #000000; /* Чорний текст */
-  text-align: center; /* Центрування заголовка */
-}
-
-button {
-  font-weight: 600;
-  padding: 0.8rem 2rem;
-  border-radius: 50px;
-
-}
-
-.subscription-card {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.subscription-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-
-/* Центрування аватарки та іншого тексту */
-section.text-center {
+.loading-placeholder {
   display: flex;
   flex-direction: column;
-  align-items: center; /* Центрування елементів по горизонталі */
-  justify-content: center; /* Центрування елементів по вертикалі */
-}
-
-section.text-center h2,
-section.text-center p {
-  text-align: center; /* Встановлюємо центроване вирівнювання для всіх текстів */
-}
-
-/* Центрування кнопок */
-div.flex {
-  display: flex;
-  justify-content: center; /* Центрування кнопок */
-  gap: 16px; /* Відстань між кнопками */
-}
-
-/* Стиль для контейнера аватарки */
-.avatar-container {
-  width: 4rem; /* Встановлюємо ширину */
-  height: 4rem; /* Встановлюємо висоту */
-  overflow: hidden; /* Обрізаємо все, що виходить за межі */
-}
-
-.avatar-container img {
-  width: 100%; /* Зображення займає всю ширину контейнера */
-  height: 100%; /* Зображення займає всю висоту контейнера */
-  object-fit: cover; /* Обрізаємо зображення, щоб воно заповнювало контейнер */
-}
-
-/* Стиль для секції з дописами */
-section.mt-8 {
-  display: flex;
-  flex-direction: column; /* Окремі елементи по вертикалі */
-  align-items: center; /* Центруємо картки по горизонталі */
-  justify-content: center; /* Центруємо картки по вертикалі */
-  gap: 16px; /* Відстань між картками */
-}
-
-/* Стиль для карток дописів */
-.post-card {
-  background-color: #ffffff;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border-radius: 1rem;
-  padding: 20px;
-  width: 80%; /* Встановлюємо ширину картки */
-  max-width: 600px; /* Максимальна ширина картки */
-}
-
-
-.post-card h3 {
-  color: #4a4a4a;
-  font-size: 1.5rem;
-}
-
-.post-card p {
-  color: #5a5a5a;
-  line-height: 1.6;
-}
-
-.donation-btn {
-  background-color: #4c51bf;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px; /* Або інша висота */
+  text-align: center;
+  color: #a0aec0;
   font-size: 1.1rem;
-  transition: background-color 0.3s ease;
 }
 
-.donation-btn:hover {
-  background-color: #434190;
-}
 
-/* Стиль для форми донату */
-.donation-form {
-
-  max-width: 400px;
-  margin: 0 auto;
-  background-color: white;
-  padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-}
-
-.donation-form input {
-  padding: 10px;
-  width: 100%;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  margin-top: 10px;
-}
-
-/* Стилі для відступів між формами */
-.donation-form,
-.subscription-card,
-.post-card {
-  margin-top: 20px; /* Встановлюємо однаковий відступ між формами */
-}
-
-.social-icon {
-  font-size: 2rem; /* Збільшуємо розмір іконок */
-  color: black; /* Базовий колір іконок */
-  transition: transform 0.3s ease, color 0.3s ease; /* Плавна анімація для кольору та трансформації */
-  padding-bottom: 20px;
-}
-
-.social-icon:hover {
-  transform: scale(1.2); /* Збільшуємо іконку при наведенні */
-}
-
-.input {
-  width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  margin-bottom: 10px;
-}
-/* Стиль для коментарів */
-.post-card .mt-6 {
-  padding-left: 1.5rem;
-}
-
-.post-card .mt-2 {
-  margin-top: 10px;
-}
-
-.post-card .input {
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-}
-
-.post-card button {
-  background-color: #4c51bf;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  transition: background-color 0.3s ease;
-}
-
-.post-card button:hover {
-  background-color: #434190;
-}
-.creator-card {
-  margin-top: 10px;
-  transition: all 0.3s ease;
+.profile-hero-section {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  padding: 2rem 1.5rem;
+  background-color: rgba(35, 42, 66, 0.35); /* Трохи інший відтінок для "героя" */
   border-radius: 20px;
-  padding: 1.5rem;
-  background: linear-gradient(145deg, rgba(234, 231, 255, 1), rgba(240, 247, 255, 1));
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  border: 1px solid #E5E7EB;
-  width: 300px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  flex-grow: 1;
+  border: 1px solid rgba(0, 247, 255, 0.12);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+  animation: hero-fade-in 0.7s ease-out;
+}
+@keyframes hero-fade-in {
+  from { opacity: 0; transform: translateY(-15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.avatar-glow-container {
+  position: relative; display: inline-block; margin-bottom: 1rem;
+}
+.profile-avatar {
+  width: 110px; height: 110px; /* Зменшено */
+  border-radius: 50%; object-fit: cover;
+  border: 3px solid #00f7ff;
+  box-shadow: 0 0 18px rgba(0, 247, 255, 0.25);
+}
+@media (min-width: 768px) { .profile-avatar { width: 130px; height: 130px; } }
+
+.profile-name { font-size: 2rem; font-weight: 700; color: #ffffff; margin-bottom: 0.2rem; }
+.profile-full-name { font-size: 0.95rem; color: #b0c4de; margin-bottom: 0.2rem; }
+.profile-followers { font-size: 0.85rem; color: #8a9bb3; margin-bottom: 0.75rem; }
+.profile-bio { font-size: 0.95rem; color: #c5d1e0; max-width: 550px; margin: 0 auto 1rem auto; line-height: 1.65; }
+.profile-socials { display: flex; justify-content: center; gap: 1rem; margin-top: 1rem; }
+.social-link { font-size: 1.35rem; color: #b0c4de; transition: color 0.3s ease, transform 0.3s ease; }
+.social-link:hover { color: #00f7ff; transform: scale(1.1); }
+
+/* Таби */
+.tabs-container {
+  display: flex; justify-content: center; gap: 0.5rem;
+  margin-bottom: 2rem; position: relative; z-index: 10; flex-wrap: wrap;
+}
+@media (min-width: 640px) { .tabs-container { gap: 1.25rem; } }
+
+.tab-button {
+  padding: 0.6rem 1.2rem; /* Зменшено падінги */
+  border-radius: 30px; font-weight: 500; font-size: 0.85rem; /* Зменшено шрифт */
+  color: #b0c4de; background-color: rgba(30, 35, 58, 0.6);
+  border: 1px solid rgba(0, 247, 255, 0.2);
+  transition: all 0.25s ease; cursor: pointer;
+}
+.tab-button:hover { background-color: rgba(0, 247, 255, 0.1); color: #00f7ff; border-color: rgba(0, 247, 255, 0.35); }
+.tab-button.active {
+  background-color: #00f7ff; color: #121828; border-color: #00f7ff;
+  box-shadow: 0 0 12px rgba(0, 247, 255, 0.25);
+}
+@media (min-width: 640px) { .tab-button { padding: 0.7rem 1.5rem; font-size: 0.95rem; } }
+
+/* Контентна область */
+.content-area { position: relative; }
+.fade-content-enter-active, .fade-content-leave-active { transition: opacity 0.25s ease, transform 0.25s ease; }
+.fade-content-enter-from { opacity: 0; transform: translateY(10px); }
+.fade-content-leave-to { opacity: 0; transform: translateY(-10px); }
+
+.content-card, .new-post-form, .post-item-card {
+  background-color: rgba(30, 35, 58, 0.5); /* Ще трохи прозоріше */
+  backdrop-filter: blur(6px) saturate(120%); /* Менше блюру */
+  border-radius: 12px; /* Менше заокруглення */
+  padding: 1.25rem; /* Зменшено падінги */
+  border: 1px solid rgba(0, 247, 255, 0.08); /* Тонша рамка */
+  box-shadow: 0 3px 15px rgba(0,0,0,0.2);
+  margin-bottom: 1.25rem;
+}
+@media (min-width: 768px) { .content-card, .new-post-form, .post-item-card { padding: 1.75rem; } }
+
+.section-subtitle {
+  font-size: 1.35rem; /* Зменшено */
+  font-weight: 600; color: #e0e0e0;
+  margin-bottom: 1.25rem; padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(0, 247, 255, 0.08);
+}
+.card-form-title { /* Для заголовків всередині форм додавання */
+  font-size: 1.2rem; color: #00f7ff; margin-bottom: 1rem; text-align: center;
 }
 
 
-
-.creator-card:hover {
-  transform: scale(1.05);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+/* Форма донату */
+.donation-form-section .section-subtitle { text-align: center; }
+.donation-presets { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-bottom: 1.25rem; }
+.preset-amount-button {
+  padding: 0.6rem 1rem; border-radius: 6px;
+  background-color: rgba(0, 247, 255, 0.07); color: #00f7ff;
+  border: 1px solid rgba(0, 247, 255, 0.15);
+  font-weight: 500; font-size: 0.9rem;
+  transition: all 0.2s ease; flex-grow: 1; min-width: 65px; text-align: center;
 }
+@media (min-width: 640px) { .preset-amount-button { flex-grow: 0; } }
+.preset-amount-button:hover { background-color: rgba(0, 247, 255, 0.12); border-color: rgba(0, 247, 255, 0.3); }
+.preset-amount-button.selected { background-color: #00f7ff; color: #121828; border-color: #00f7ff; box-shadow: 0 0 8px rgba(0, 247, 255, 0.25); }
+
+/* Інпути (загальні для всіх форм на сторінці) */
+.form-group { margin-bottom: 1rem; }
+.form-label { display: block; font-size: 0.85rem; color: #b0c4de; margin-bottom: 0.25rem; }
+.input-field {
+  width: 100%; padding: 0.7rem 0.9rem; /* Зменшено падінги */
+  border-radius: 6px; background-color: rgba(10, 15, 35, 0.75); /* Трохи менш прозорий */
+  border: 1px solid rgba(0, 247, 255, 0.25); /* Яскравіша рамка */
+  color: #e0e0e0; font-size: 0.95rem; /* Трохи менший шрифт */
+  transition: all 0.2s ease; box-sizing: border-box;
+}
+.input-field::placeholder { color: #637690; }
+.input-field:focus {
+  outline: none; border-color: #00f7ff;
+  background-color: rgba(10, 15, 35, 0.95); /* Майже непрозорий при фокусі */
+  box-shadow: 0 0 0 2px rgba(0, 247, 255, 0.15);
+}
+.form-checkbox-label { display: flex; align-items: center; font-size: 0.9rem; color: #bdc6d3; cursor: pointer; }
+.form-checkbox { /* Стилізація чекбоксу */
+  appearance: none; background-color: rgba(10, 15, 35, 0.7);
+  border: 1px solid rgba(0, 247, 255, 0.25); border-radius: 4px;
+  width: 1.15em; height: 1.15em; cursor: pointer; position: relative; top: 0.1em; margin-right: 0.5rem;
+}
+.form-checkbox:checked {
+  background-color: #00f7ff; border-color: #00f7ff;
+  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='rgb(18,24,40)' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+  background-size: 100% 100%; background-position: center; background-repeat: no-repeat;
+}
+
+/* Кнопки */
+.cta-button {
+  width: 100%; padding: 0.75rem 1rem; /* Зменшено падінги */
+  background: linear-gradient(90deg, #00e8ef, #2e69e0); /* Менш насичений градієнт */
+  color: #f0f0f0; /* Світлий текст */
+  font-weight: 600; border-radius: 6px; transition: all 0.2s ease;
+  border: none; cursor: pointer; font-size: 0.95rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.cta-button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 200, 200, 0.2); background: linear-gradient(90deg, #1cf0f8, #457bf0); }
+.cta-button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.main-action-button { margin-top: 0.5rem; }
+.secondary-action-button {
+  padding: 0.6rem 1.1rem; font-size: 0.85rem;
+  background: rgba(0, 247, 255, 0.08); color: #00f7ff;
+  border: 1px solid rgba(0, 247, 255, 0.25);
+  width: auto; align-self: flex-end;
+}
+.secondary-action-button:hover:not(:disabled) { background: rgba(0, 247, 255, 0.15); border-color: rgba(0, 247, 255, 0.4); box-shadow: 0 1px 6px rgba(0, 247, 255, 0.1); }
+
+/* Секція підписок */
+.subscriptions-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; }
+.new-tier-form { border-style: dashed; border-color: rgba(0, 247, 255, 0.25); background-color: rgba(30, 35, 58, 0.3); padding: 1.5rem; }
+
+/* Секція дописів */
+.posts-section .section-subtitle { border-bottom: none; text-align: center; }
+.posts-list { display: flex; flex-direction: column; gap: 1.25rem; align-items: center; }
+.post-item-card { max-width: 650px; width: 100%; padding: 1.5rem; } /* Зменшено padding */
+.post-title { font-size: 1.35rem; font-weight: 600; color: #00f7ff; margin-bottom: 0.6rem; }
+.post-content { color: #c5d1e0; line-height: 1.65; margin-bottom: 0.6rem; white-space: pre-wrap; font-size: 0.95rem; }
+.post-date { font-size: 0.75rem; color: #7789a0; text-align: right; margin-bottom: 1rem; }
+
+.comments-section { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(0, 247, 255, 0.08); }
+.comments-title { font-size: 0.9rem; font-weight: 500; color: #c5d1e0; margin-bottom: 0.6rem; }
+.comment-item { background-color: rgba(10, 15, 35, 0.6); padding: 0.6rem 0.85rem; border-radius: 4px; margin-bottom: 0.4rem; font-size: 0.8rem; }
+.comment-author { color: #00f7ff; opacity: 0.8; }
+.comment-text { color: #c5d1e0; }
+.add-comment-form { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.comment-textarea { font-size: 0.85rem; padding: 0.6rem; }
+.comment-button { margin-top: 0; padding: 0.5rem 1rem; font-size: 0.85rem; }
+
+/* Схожі автори */
+.similar-authors-section { margin-top: 2.5rem; padding: 0 0.5rem; }
+.similar-authors-section .section-title-standalone { /* Новий клас для заголовка "Схожі автори" */
+  font-size: 1.6rem; font-weight: 600; color: #e0e0e0; margin-bottom: 1.5rem; text-align: center;
+}
+.similar-authors-section .creators-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
 </style>

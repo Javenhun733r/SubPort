@@ -1,6 +1,11 @@
 import prisma from "../db/db.config.js";
 import jwt from 'jsonwebtoken';
-
+import {BlobServiceClient} from "@azure/storage-blob";
+const accountName = process.env.ACCOUNT_NAME;
+const sasToken = process.env.SAS_TOKEN;
+const containerName = process.env.CONTAINER_NAME;
+const blobServiceClient = new BlobServiceClient(`https://${accountName}.blob.core.windows.net/?${sasToken}`);
+const containerClient = blobServiceClient.getContainerClient(containerName);
 export const getAuthorByUsername = async (req, res) => {
     const { username } = req.params;
 
@@ -79,10 +84,18 @@ export const createAuthor = async (req, res) => {
 };
 
 export const createAuthorRequest = async (req, res) => {
-    const {username, name, bio, genre, subscribers, socials} = req.body;
-    const avatarFile = req.file?.filename || null;
+    const { username, name, bio, genre, subscribers, socials } = req.body;
+    let avatarFile = null;
 
     try {
+        console.log(req.file);
+        if (req.file) {
+            const blobName = `${req.userId}_${req.file.originalname}`;
+            const blobClient = containerClient.getBlockBlobClient(blobName);
+            await blobClient.uploadData(req.file.buffer);
+            avatarFile = blobClient.url;
+        }
+
         const newRequest = await prisma.authorRequest.create({
             data: {
                 username,
@@ -91,7 +104,7 @@ export const createAuthorRequest = async (req, res) => {
                 genre,
                 subscribers,
                 avatarFile,
-                userId: req.userId, // Витягуємо userId з JWT
+                userId: req.userId,
                 socials: socials ? JSON.stringify(socials) : null
             }
         });
@@ -99,7 +112,7 @@ export const createAuthorRequest = async (req, res) => {
         res.status(201).json(newRequest);
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: 'Failed to submit request'});
+        res.status(500).json({ message: 'Failed to submit request' });
     }
 };
 
@@ -247,6 +260,7 @@ export const getProfile = async (req, res) => {
             return res.status(404).json({ error: "User not found" });
         }
 
+        // Отримуємо авторські сторінки користувача
         const userAuthorPages = await prisma.author.findMany({
             where: { userId: userId },
             select: {
@@ -258,15 +272,37 @@ export const getProfile = async (req, res) => {
             }
         });
 
+        // Отримуємо підписки користувача
+        const userSubscriptions = await prisma.tierSubscription.findMany({
+            where: { userId: userId },
+            include: {
+                tier: {
+                    select: {
+                        title: true,
+                        price: true,
+                        description: true,
+                    }
+                }
+            }
+        });
+
+        // Повертаємо профіль, авторські сторінки та підписки
         return res.status(200).json({
             user,
-            authorPages: userAuthorPages
+            authorPages: userAuthorPages,
+            subscriptions: userSubscriptions.map(subscription => ({
+                tierTitle: subscription.tier.title,
+                price: subscription.tier.price,
+                description: subscription.tier.description,
+                expiresAt: subscription.expiresAt
+            }))
         });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
+
 
 export const updateProfile = async (req, res) => {
     const {name, username, bio, genre, socials} = req.body;

@@ -114,3 +114,70 @@ export const VerifyEmailController = async (req, res) => {
         return res.status(500).json({ error: "Internal Server Error" });
     }
 };
+const sendResetEmail = async (email, token) => {
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.EMAIL,
+            pass: process.env.EMAIL_PASSWORD,
+        },
+    });
+
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+
+    const mailOptions = {
+        from: process.env.EMAIL,
+        to: email,
+        subject: 'Password Reset Instructions',
+        html: `
+      <h2>Reset your password</h2>
+      <p>Click the link below to set a new password:</p>
+      <a href="${resetLink}">${resetLink}</a>
+      <p>This link is valid for 1 hour.</p>
+    `,
+    };
+
+    await transporter.sendMail(mailOptions);
+};
+
+export const ForgotPasswordController = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) {
+            return res.status(404).json({ error: 'Користувача з такою адресою не знайдено' });
+        }
+
+        const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        console.log(token);
+        await sendResetEmail(email, token);
+
+        return res.status(200).json({ message: 'Інструкції надіслано на вашу електронну пошту' });
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        return res.status(500).json({ error: 'Виникла помилка. Спробуйте пізніше.' });
+    }
+};
+
+export const ResetPasswordController = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const newPassword  = req.body.password;
+        console.log(token);
+        console.log(newPassword);
+        console.log(req.body.password);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await prisma.user.update({
+            where: { email: decoded.email },
+            data: { password: hashedPassword },
+        });
+
+        return res.status(200).json({ message: 'Пароль успішно оновлено' });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        return res.status(400).json({ error: 'Недійсний або протермінований токен' });
+    }
+};

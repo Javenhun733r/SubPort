@@ -2,7 +2,7 @@
   <div class="bg-gradient-to-b from-indigo-700 to-purple-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 w-full max-w-sm mx-auto">
     <h3 class="font-semibold text-lg mb-3 text-white">{{ title }}</h3>
     <p class="text-2xl font-bold mb-2 text-white">{{ price }} ₴<span class="text-sm text-indigo-300">/міс</span></p>
-    <button @click="handleSubscription" class="w-full py-2 mb-4 bg-indigo-500 text-black rounded-full font-medium hover:bg-indigo-600 transition-all duration-200">
+    <button @click="handleSubscriptionPayment" class="w-full py-2 mb-4 bg-indigo-500 text-black rounded-full font-medium hover:bg-indigo-600 transition-all duration-200">
       Підписатися
     </button>
     <p class="text-sm text-gray-300 mb-2">{{ description }}</p>
@@ -10,21 +10,78 @@
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
-  props: ['title', 'price', 'description', 'isChat'],
+  props: ['id','title', 'price', 'description', 'isChat', 'username'], // Додано username в props
+  data() {
+    return {
+      liqpayData: null,
+      liqpaySignature: null
+    };
+  },
   methods: {
-    handleSubscription()
-    {
-      console.log('Користувач доданий до чату!');
-      if (this.isChat) {
-        this.$emit('addUserToChat');  // Викликаємо подію для додавання користувача до чату
+    async handleSubscriptionPayment(tier) {
+      if (!tier || !this.price || this.price <= 1) {
+        alert("Виберіть тариф і введіть правильну ціну.");
+        return;
       }
-    }
+
+      console.log(this.id);
+      try {
+        const token = localStorage.getItem('jwt');
+        // Викликаємо API для створення платежу підписки
+        const response = await axios.post("http://localhost:8081/api/create-subscription", {
+          id: this.id,
+          amount: this.price,
+          title: this.title,
+          username: this.username
+        },{headers: {
+            Authorization: `Bearer ${token}`
+          }});
+
+        this.liqpayData = response.data.data;
+        this.liqpaySignature = response.data.signature;
+
+        // Створюємо HTML форму для Liqpay
+        const form = document.createElement("form");
+        form.action = "https://www.liqpay.ua/api/3/checkout"; // URL Liqpay для редиректу
+        form.method = "POST";
+        form.target = "_blank"; // Відкриває сторінку в новій вкладці
+
+        // Додаємо дані для Liqpay в форму
+        const dataInput = document.createElement("input");
+        dataInput.type = "hidden";
+        dataInput.name = "data";
+        dataInput.value = this.liqpayData;
+
+        const signatureInput = document.createElement("input");
+        signatureInput.type = "hidden";
+        signatureInput.name = "signature";
+        signatureInput.value = this.liqpaySignature;
+
+        form.appendChild(dataInput);
+        form.appendChild(signatureInput);
+
+        // Відправляємо форму
+        document.body.appendChild(form);
+        form.submit();
+
+        // Якщо є чат, додаємо користувача до чату
+        if (this.isChat) {
+          this.$emit('addUserToChat');  // Викликаємо подію для додавання користувача до чату
+        }
+
+
+      } catch (error) {
+        console.error("Не вдалося здійснити оплату підписки:", error);
+        alert("Помилка при оплаті. Спробуйте ще раз.");
+      }
+    },
   }
 }
-
-
 </script>
+
 
 <style scoped>
 /* Стилі для картки */

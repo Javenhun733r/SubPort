@@ -1,22 +1,16 @@
-// middleware/upload.js
 import multer from 'multer';
+import { BlobServiceClient } from '@azure/storage-blob';
 import path from 'path';
-import fs from 'fs';
 
-// Директорія для збереження
-const uploadDir = 'uploads/avatars';
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+// Налаштування для Azure Blob Storage
+const accountName = process.env.ACCOUNT_NAME;
+const sasToken = process.env.SAS_TOKEN;
+const containerName = process.env.CONTAINER_NAME;
+const blobServiceClient = new BlobServiceClient(`https://${accountName}.blob.core.windows.net/?${sasToken}`);
+const containerClient = blobServiceClient.getContainerClient(containerName);
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname);
-        const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${ext}`;
-        cb(null, uniqueName);
-    }
-});
+// Налаштування multer для потокового завантаження
+const storage = multer.memoryStorage();  // Використовуємо memoryStorage, щоб файли були в пам'яті
 
 const upload = multer({ storage });
 

@@ -10,6 +10,9 @@ import ProfilePage from "@/components/Pages/ProfilePage.vue";
 import ChatPage from "@/components/Pages/ChatPage.vue";
 import axios from "axios";
 import EmailConfirmationPage from "@/components/Pages/EmailConfirmationPage.vue";
+import ThanksView from "@/components/Pages/ThanksView.vue";
+import ForgotPasswordPage from "@/components/Pages/ForgotPasswordPage.vue";
+import ResetPasswordPage from "@/components/Pages/ResetPasswordPage.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -66,6 +69,21 @@ const router = createRouter({
             name: 'EmailVerification',
             component: EmailConfirmationPage,
         },
+        {
+            path: '/thanks',
+            name: 'Thanks',
+            component: ThanksView
+        },
+        {
+            path: '/forgot-password',
+            name: 'Forgot Password',
+            component: ForgotPasswordPage,
+        },
+        {
+            path: '/reset-password/:token',
+            name: 'Reset Password',
+            component: ResetPasswordPage,
+        }
     ],
 });
 router.beforeEach(async (to, from, next) => {

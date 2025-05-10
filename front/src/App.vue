@@ -22,12 +22,9 @@ body, html, #app {
 
 .app {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-image: url('@/assets/background.jpg');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+  background: linear-gradient(-45deg, #fce0e5, #d8e2fc, #c8d9fc, #d8cffc);
+  background-size: 400% 400%;
+  animation: gradientBG 25s ease infinite;;
 }
 
 /* Щоб контент не налипав */
