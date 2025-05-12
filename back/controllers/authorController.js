@@ -253,6 +253,7 @@ export const getProfile = async (req, res) => {
                 name: true,
                 email: true,
                 role: true,
+                balance: true,
             },
         });
 

@@ -23,13 +23,15 @@ model User {
   Author Author[]
   isVerified      Boolean          @default(false)
   ChatUser ChatUser[]
-
+  balance      Decimal  @default(0.00) @db.Decimal(10, 2)
   Message Message[]
 
   Chat Chat[]
   TierSubscription TierSubscription[]
 
   Comment Comment[]
+
+  Withdrawal Withdrawal[]
 }
 
 
@@ -124,13 +126,17 @@ model ChatUser {
 
 model Message {
   id        Int      @id @default(autoincrement())
-  text      String
+  text      String?
   chat      Chat     @relation(fields: [chatId], references: [id])
   chatId    Int
 
   sender    User     @relation(fields: [senderId], references: [id])
   senderId  Int
-
+  messageType String   @default("text")
+  fileUrl     String?
+  fileName    String?
+  fileType    String?
+  fileSize    Int?
   createdAt DateTime @default(now())
 }
 model TierSubscription {
@@ -162,4 +168,17 @@ model ReminderLog {
   sentAt          DateTime          @default(now())
   subscription    TierSubscription @relation(fields: [subscriptionId], references: [id])
 }
-
+model Withdrawal {
+  id              Int       @id @default(autoincrement())
+  userId        Int
+  user         User    @relation(fields: [userId], references: [id])
+  amount          Decimal   @db.Decimal(10, 2)
+  currency        String    @default("UAH")
+  receiverCard    String
+  status          String
+  liqpayOrderId   String?   @unique
+  liqpayPaymentId String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}

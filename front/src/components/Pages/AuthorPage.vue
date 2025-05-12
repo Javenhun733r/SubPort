@@ -540,7 +540,8 @@ export default {
 .form-group { margin-bottom: 1rem; }
 .form-label { display: block; font-size: 0.85rem; color: #b0c4de; margin-bottom: 0.25rem; }
 .input-field {
-  width: 100%; padding: 0.7rem 0.9rem; /* Зменшено падінги */
+
+  width: 50%; padding: 0.7rem 0.9rem; /* Зменшено падінги */
   border-radius: 6px; background-color: rgba(10, 15, 35, 0.75); /* Трохи менш прозорий */
   border: 1px solid rgba(0, 247, 255, 0.25); /* Яскравіша рамка */
   color: #e0e0e0; font-size: 0.95rem; /* Трохи менший шрифт */
@@ -586,7 +587,22 @@ export default {
 .secondary-action-button:hover:not(:disabled) { background: rgba(0, 247, 255, 0.15); border-color: rgba(0, 247, 255, 0.4); box-shadow: 0 1px 6px rgba(0, 247, 255, 0.1); }
 
 /* Секція підписок */
-.subscriptions-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; }
+.subscriptions-grid {
+  /* Визначаємо змінні для гнучкості та читабельності */
+  --grid-min-item-width: 260px; /* Ваша мінімальна ширина елемента */
+  --grid-gap: 2rem;             /* Ваша відстань між елементами */
+  --grid-max-columns: 4;        /* Максимальна кількість колонок, яку ви бажаєте */
+
+  display: grid;
+  gap: var(--grid-gap);
+  grid-template-columns: repeat(auto-fill, minmax(
+      max(
+          var(--grid-min-item-width),
+          calc((100% - (var(--grid-max-columns) - 1) * var(--grid-gap)) / var(--grid-max-columns))
+      ),
+      1fr
+  ));
+}
 .new-tier-form { border-style: dashed; border-color: rgba(0, 247, 255, 0.25); background-color: rgba(30, 35, 58, 0.3); padding: 1.5rem; }
 
 /* Секція дописів */

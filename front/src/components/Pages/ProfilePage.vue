@@ -1,6 +1,13 @@
 <template>
   <div class="profile-page text-gray-200 py-12 md:py-16 min-h-screen overflow-x-hidden">
+    <div v-if="isLoading && !error" class="loading-state">
+      <div class="spinner"></div>
+      <p>Завантаження даних профілю...</p>
+    </div>
 
+    <div v-if="error && !isLoading" class="error-message">
+      <strong>Помилка!</strong> {{ error }}
+    </div>
 
     <div v-if="user && !isLoading && !error" class="profile-content-wrapper">
       <section class="user-hero-section">
@@ -12,9 +19,74 @@
         </div>
         <h1 class="user-name">{{ user.name }}</h1>
         <p class="user-email">{{ user.email }}</p>
+        <p v-if="user.balance && parseFloat(user.balance) > 0" class="user-balance">
+          На вашому балансі: <strong>{{ user.balance }}</strong> гривень
+        </p>
+        <p v-else class="user-balance">
+          На вашому балансі: <strong>0.00</strong> гривень
+        </p>
       </section>
 
       <div class="content-grid">
+        <section v-if="user.balance && parseFloat(user.balance) > 0" class="content-section withdrawal-section">
+          <h2 class="section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2.5 inline-block text-cyan-500/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            Вивід коштів
+          </h2>
+          <form @submit.prevent="handleWithdrawal" class="withdrawal-form">
+            <div class="form-group">
+              <label for="withdrawalAmount" class="form-label">Сума для виводу (грн):</label>
+              <input
+                  type="number"
+                  id="withdrawalAmount"
+                  v-model.number="withdrawalAmount"
+                  placeholder="Наприклад: 100.00"
+                  min="1"
+                  :max="user.balance ? parseFloat(user.balance) : 0"
+                  step="0.01"
+                  class="form-input"
+                  required
+              />
+            </div>
+            <div class="form-group">
+              <label for="receiverCard" class="form-label">Номер картки (16 цифр):</label>
+              <input
+                  type="text"
+                  id="receiverCard"
+                  v-model.trim="receiverCard"
+                  placeholder="XXXX XXXX XXXX XXXX"
+                  pattern="\d{16}"
+                  maxlength="16"
+                  class="form-input"
+                  required
+              />
+            </div>
+
+            <div v-if="withdrawalMessage" :class="['withdrawal-feedback', withdrawalError ? 'error' : 'success']">
+              {{ withdrawalMessage }}
+            </div>
+
+            <button type="submit" class="button-primary" :disabled="withdrawalLoading">
+              <span v-if="withdrawalLoading">Обробка...</span>
+              <span v-else>Надіслати запит на вивід</span>
+            </button>
+          </form>
+        </section>
+        <section v-else class="content-section withdrawal-section">
+          <h2 class="section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2.5 inline-block text-cyan-500/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            Вивід коштів
+          </h2>
+          <div class="empty-state">
+            <p>Для виводу коштів ваш баланс має бути більшим за нуль.</p>
+            <p>Ви можете отримати кошти через донати або підписки від ваших шанувальників.</p>
+          </div>
+        </section>
+
         <section class="content-section author-pages-section">
           <h2 class="section-title">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2.5 inline-block text-cyan-500/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v11.494m0 0a8.485 8.485 0 0011.925 0M12 17.747a8.485 8.485 0 01-11.925 0M12 17.747l-.006-.007M12 17.747l.006-.007m6.169-9.003a8.485 8.485 0 01-11.93 0M12 6.253a8.485 8.485 0 00-5.965 2.484" /></svg>
@@ -76,20 +148,26 @@
 </template>
 
 <script setup>
-// ... (ваш JavaScript код залишається практично без змін, можливо, лише логіка помилок/завантаження)
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
-// import { useRouter } from 'vue-router';
+// import { useRouter } from 'vue-router'; // Розкоментуйте, якщо використовуєте
 
 const user = ref(null);
 const authorPages = ref([]);
 const subscriptions = ref([]);
 const isLoading = ref(true);
 const error = ref(null);
+// const router = useRouter(); // Розкоментуйте, якщо використовуєте
 
-// const router = useRouter();
+// --- Дані для форми виводу ---
+const withdrawalAmount = ref(null);
+const receiverCard = ref('');
+const withdrawalLoading = ref(false);
+const withdrawalMessage = ref('');
+const withdrawalError = ref(false); // true, якщо повідомлення є помилкою
 
-onMounted(async () => {
+// Функція для отримання даних профілю
+const fetchProfileData = async () => {
   isLoading.value = true;
   error.value = null;
   const token = localStorage.getItem('jwt');
@@ -97,15 +175,12 @@ onMounted(async () => {
   if (!token) {
     error.value = "Сесія завершена. Будь ласка, увійдіть знову.";
     isLoading.value = false;
-    // router.push('/login');
+    // router.push('/login'); // Розкоментуйте для редіректу
     return;
   }
 
   try {
-    // Імітація затримки для демонстрації спіннера
-    // await new Promise(resolve => setTimeout(resolve, 1500));
-
-    const res = await axios.get('http://localhost:8081/profile', {
+    const res = await axios.get('http://localhost:8081/profile', { // Переконайтесь, що порт вірний
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = res.data;
@@ -118,36 +193,205 @@ onMounted(async () => {
       error.value = `Помилка ${err.response.status}: Не вдалося завантажити дані. ${err.response.data.message || ''}`;
       if (err.response.status === 401 || err.response.status === 403) {
         // localStorage.removeItem('jwt');
-        // router.push('/login');
+        // router.push('/login'); // Розкоментуйте для редіректу
       }
     } else if (err.request) {
       error.value = 'Немає відповіді від сервера. Перевірте інтернет або спробуйте пізніше.';
     } else {
-      error.value = 'Сталася непередбачена помилка.';
+      error.value = 'Сталася непередбачена помилка під час завантаження профілю.';
     }
   } finally {
     isLoading.value = false;
   }
-});
+};
+
+
+// --- Логіка для виводу коштів ---
+const handleWithdrawal = async () => {
+  withdrawalLoading.value = true;
+  withdrawalMessage.value = '';
+  withdrawalError.value = false;
+
+  if (!withdrawalAmount.value || withdrawalAmount.value <= 0) {
+    withdrawalMessage.value = 'Будь ласка, введіть коректну суму для виводу.';
+    withdrawalError.value = true;
+    withdrawalLoading.value = false;
+    return;
+  }
+  if (!receiverCard.value || !/^\d{16}$/.test(receiverCard.value)) {
+    withdrawalMessage.value = 'Будь ласка, введіть коректний 16-значний номер картки.';
+    withdrawalError.value = true;
+    withdrawalLoading.value = false;
+    return;
+  }
+  if (user.value && withdrawalAmount.value > parseFloat(user.value.balance)) {
+    withdrawalMessage.value = 'Сума виводу перевищує ваш поточний баланс.';
+    withdrawalError.value = true;
+    withdrawalLoading.value = false;
+    return;
+  }
+
+  const token = localStorage.getItem('jwt');
+  if (!token) {
+    withdrawalMessage.value = "Сесія завершена. Будь ласка, увійдіть знову, щоб вивести кошти.";
+    withdrawalError.value = true;
+    // router.push('/login'); // Розкоментуйте для редіректу
+    withdrawalLoading.value = false;
+    return;
+  }
+
+  try {
+    // Припускаємо, що ваш API ендпоінт для виводу: /api/withdrawals
+    const response = await axios.post('http://localhost:8081/api/withdrawal', { // Перевірте URL та порт!
+      amount: withdrawalAmount.value,
+      receiverCard: receiverCard.value,
+    }, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    // Успішна відповідь від вашого бекенду
+    withdrawalMessage.value = response.data.message || 'Запит на вивід успішно надіслано та прийнято LiqPay для обробки.';
+    withdrawalError.value = false;
+    withdrawalAmount.value = null; // Очистити форму
+    receiverCard.value = '';     // Очистити форму
+
+    // Важливо: баланс користувача (user.value.balance) НЕ оновлюється тут миттєво.
+    // Він оновиться в базі даних після успішного колбеку від LiqPay.
+    // Щоб побачити оновлений баланс, користувачу може знадобитися оновити сторінку
+    // або ви можете реалізувати періодичне оновлення даних профілю.
+    // Можна показати повідомлення та запропонувати оновити дані через деякий час.
+    // Або через 10-15 секунд автоматично викликати fetchProfileData()
+    setTimeout(() => {
+      fetchProfileData(); // Оновлюємо дані профілю, щоб побачити зміни балансу
+    }, 10000); // Наприклад, через 10 секунд
+
+  } catch (err) {
+    console.error('Помилка при створенні запиту на вивід:', err.response || err.message);
+    if (err.response) {
+      withdrawalMessage.value = `Помилка ${err.response.status}: ${err.response.data.message || 'Не вдалося обробити запит на вивід.'}`;
+    } else if (err.request) {
+      withdrawalMessage.value = 'Немає відповіді від сервера при спробі виводу коштів.';
+    } else {
+      withdrawalMessage.value = 'Сталася непередбачена помилка під час запиту на вивід.';
+    }
+    withdrawalError.value = true;
+  } finally {
+    withdrawalLoading.value = false;
+  }
+};
+
+onMounted(fetchProfileData); // Завантажуємо дані профілю при монтуванні
 </script>
 
 <style scoped>
-/* Прибираємо фон звідси, він має бути глобальним */
-.profile-page {
+/* ... (ваші існуючі стилі залишаються тут) ... */
+
+.profile-page { /* Якщо ще не визначено */
   font-family: "Raleway", sans-serif;
   padding-left: 1rem;
   padding-right: 1rem;
 }
 
-@keyframes fadeInSlideUp {
-  from { opacity: 0; transform: translateY(25px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Стилі для секції виводу коштів */
+.withdrawal-section {
+  /* Можна додати spezifische відступи, якщо потрібно */
+  animation: fadeInSlideUp 0.6s ease-out 0.7s backwards; /* трохи пізніша анімація */
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.withdrawal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* Відстань між елементами форми */
+  background-color: rgba(30, 35, 58, 0.65);
+  backdrop-filter: blur(8px) saturate(130%);
+  border-radius: 10px;
+  padding: 1.5rem; /* Внутрішні відступи для форми */
+  border: 1px solid rgba(0, 247, 255, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
 
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label {
+  font-size: 0.875rem; /* 14px */
+  color: #a0aec0; /* Tailwind gray-400 */
+  margin-bottom: 0.3rem;
+}
+
+.form-input {
+  background-color: rgba(17, 24, 39, 0.8); /* Tailwind gray-900 з прозорістю */
+  border: 1px solid rgba(55, 65, 81, 0.7); /* Tailwind gray-700 з прозорістю */
+  color: #e5e7eb; /* Tailwind gray-200 */
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.95rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.form-input:focus {
+  outline: none;
+  border-color: #00f7ff;
+  box-shadow: 0 0 0 2px rgba(0, 247, 255, 0.2);
+}
+.form-input::placeholder {
+  color: #6b7280; /* Tailwind gray-500 */
+}
+
+.button-primary { /* Стиль для основної кнопки, адаптуйте, якщо у вас вже є */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.2rem;
+  background: linear-gradient(90deg, #00c6ff, #0072ff); /* Більш яскравий градієнт для кнопки */
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 150, 255, 0.25);
+  cursor: pointer;
+}
+.button-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 150, 255, 0.35);
+  background: linear-gradient(90deg, #00d2ff, #007eff);
+}
+.button-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.withdrawal-feedback {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+.withdrawal-feedback.success {
+  background-color: rgba(22, 163, 74, 0.15); /* Tailwind green-700/15 */
+  color: #a7f3d0; /* Tailwind green-200 */
+  border: 1px solid rgba(22, 163, 74, 0.3);
+}
+.withdrawal-feedback.error {
+  background-color: rgba(220, 38, 38, 0.15); /* Tailwind red-600/15 */
+  color: #fca5a5; /* Tailwind red-300 */
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.withdrawal-note {
+  font-size: 0.8rem;
+  color: #9ca3af; /* Tailwind gray-400 */
+  text-align: center;
+  margin-top: 0.75rem;
+  line-height: 1.5;
+}
+
+/* Загальні стилі для спіннера та повідомлень (якщо ще не визначені) */
 .loading-state, .error-message {
   display: flex;
   flex-direction: column;
@@ -156,6 +400,17 @@ onMounted(async () => {
   min-height: 60vh;
   text-align: center;
 }
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0, 247, 255, 0.2);
+  border-top-color: #00f7ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 .error-message {
   background-color: rgba(255, 70, 70, 0.05);
   border: 1px solid rgba(255, 70, 70, 0.2);
@@ -164,6 +419,13 @@ onMounted(async () => {
   color: #ffc5c5;
 }
 .error-message strong { color: #ff9a9a; }
+
+
+/* Існуючі стилі з вашого файлу */
+@keyframes fadeInSlideUp {
+  from { opacity: 0; transform: translateY(25px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 .profile-content-wrapper {
   max-width: 1100px;
@@ -176,14 +438,18 @@ onMounted(async () => {
   align-items: center;
   padding: 2.5rem 1rem;
   margin-bottom: 3rem;
-  background-color: rgba(40, 48, 70, 0.3); /* Трохи змінений фон для кращого контрасту з картками */
-  backdrop-filter: blur(5px) saturate(120%); /* Зменшено блюр для чіткості */
+  background-color: rgba(40, 48, 70, 0.3);
+  backdrop-filter: blur(5px) saturate(120%);
   border-radius: 20px;
-  border: 1px solid rgba(0, 247, 255, 0.1); /* Тонша, менш яскрава рамка */
+  border: 1px solid rgba(0, 247, 255, 0.1);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
   animation: fadeInSlideUp 0.8s ease-out;
 }
-
+.user-balance strong {
+  color: #00f7ff; /* Або інший акцентний колір */
+  font-weight: 700;
+}
+/* ... решта ваших стилів ... */
 .avatar-glow {
   position: relative;
   margin-bottom: 1.5rem;
@@ -191,30 +457,30 @@ onMounted(async () => {
 .avatar-glow::before {
   content: '';
   position: absolute;
-  inset: -5px; /* Ще трохи менше світіння */
+  inset: -5px;
   border-radius: 50%;
-  background: conic-gradient(from 90deg at 50% 50%, #00f7ff, #6f42c1, #e83e8c, #00f7ff); /* Трохи змінені кольори градієнта */
-  filter: blur(12px); /* Менше розмиття */
-  opacity: 0.5; /* Менша непрозорість */
-  animation: spin 5s linear infinite; /* Повільніше обертання */
+  background: conic-gradient(from 90deg at 50% 50%, #00f7ff, #6f42c1, #e83e8c, #00f7ff);
+  filter: blur(12px);
+  opacity: 0.5;
+  animation: spin 5s linear infinite;
 }
 
 .user-avatar, .user-avatar-placeholder {
-  width: 100px; /* Зменшено до 100px */
+  width: 100px;
   height: 100px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid #121828; /* Має відповідати глобальному фону */
+  border: 3px solid #121828;
   position: relative;
   z-index: 1;
-  background-color: #232a44; /* Трохи світліший фон плейсхолдера */
+  background-color: #232a44;
   box-shadow: 0 0 10px rgba(0, 247, 255, 0.2);
 }
 .user-avatar-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 3rem; /* Адаптовано до розміру 100px */
+  font-size: 3rem;
   font-weight: bold;
   color: #00f7ff;
 }
@@ -228,7 +494,7 @@ onMounted(async () => {
 }
 .user-email {
   font-size: 0.95rem;
-  color: #e1dede; /* Трохи світліший сірий */
+  color: #e1dede;
 }
 
 .content-grid {
@@ -245,35 +511,35 @@ onMounted(async () => {
 }
 .content-section:nth-child(2){ animation-delay: 0.5s; }
 
+
 .section-title {
-  font-size: 1.5rem; /* Зменшено */
+  font-size: 1.5rem;
   font-weight: 600;
   color: #00f7ff;
   margin-bottom: 1.5rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(0, 247, 255, 0.1); /* Ще тонша лінія */
+  border-bottom: 1px solid rgba(0, 247, 255, 0.1);
   display: flex;
   align-items: center;
 }
-/* Зменшення іконок в заголовках */
 .section-title svg {
-  width: 1.25rem; /* Tailwind h-5 w-5 */
+  width: 1.25rem;
   height: 1.25rem;
-  margin-right: 0.625rem; /* Tailwind mr-2.5 */
-  opacity: 0.7; /* Менш яскраві */
+  margin-right: 0.625rem;
+  opacity: 0.7;
 }
 
 .cards-container {
   display: grid;
-  gap: 1.25rem; /* Зменшено відступ */
+  gap: 1.25rem;
 }
 
 .data-card {
-  background-color: rgba(30, 35, 58, 0.65); /* Трохи менш прозорий */
-  backdrop-filter: blur(8px) saturate(130%); /* Зменшено ефекти */
-  border-radius: 10px; /* Менше заокруглення */
-  padding: 1rem; /* Зменшено падінги */
-  border: 1px solid rgba(0, 247, 255, 0.08); /* Дуже тонка рамка */
+  background-color: rgba(30, 35, 58, 0.65);
+  backdrop-filter: blur(8px) saturate(130%);
+  border-radius: 10px;
+  padding: 1rem;
+  border: 1px solid rgba(0, 247, 255, 0.08);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
   opacity: 0;
@@ -283,7 +549,7 @@ onMounted(async () => {
   flex-direction: column;
 }
 .data-card:hover {
-  transform: translateY(-3px); /* Менший ефект */
+  transform: translateY(-3px);
   box-shadow: 0 5px 20px rgba(0, 247, 255, 0.12);
   border-color: rgba(0, 247, 255, 0.25);
 }
@@ -294,7 +560,7 @@ onMounted(async () => {
 }
 
 .card-avatar {
-  width: 50px; /* Значно зменшено */
+  width: 50px;
   height: 50px;
   border-radius: 50%;
   object-fit: cover;
@@ -310,7 +576,7 @@ onMounted(async () => {
 @media (min-width: 640px) { .author-card .card-info { text-align: left; } }
 
 .card-title {
-  font-size: 1rem; /* Зменшено */
+  font-size: 1rem;
   font-weight: 600;
   color: #00f7ff;
   margin-bottom: 0.1rem;
@@ -319,14 +585,14 @@ onMounted(async () => {
 .card-title a:hover { color: #8effff; }
 
 .card-title-main {
-  font-size: 1.1rem; /* Зменшено */
+  font-size: 1.1rem;
   font-weight: 600;
   color: #f0f0f0;
   margin-bottom: 0.2rem;
 }
 
 .card-subtitle, .card-expiry-date {
-  font-size: 0.8rem; /* Зменшено */
+  font-size: 0.8rem;
   color: #a0aec0;
 }
 .card-expiry-date { margin-top: 0.2rem; color: #cbd5e0; }
@@ -336,22 +602,21 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   margin-top: 0.75rem;
-  padding: 0.4rem 0.8rem; /* Значно зменшено */
-  background: linear-gradient(90deg, #00b8c0, #2a4db1); /* Ще менш яскраві */
+  padding: 0.4rem 0.8rem;
+  background: linear-gradient(90deg, #00b8c0, #2a4db1);
   color: #ffffff;
-  font-size: 0.85rem; /* Зменшено шрифт кнопки */
-  font-weight: 500; /* Зменшено жирність */
+  font-size: 0.85rem;
+  font-weight: 500;
   text-decoration: none;
   border-radius: 6px;
   transition: all 0.3s ease;
   border: none;
   box-shadow: 0 1px 6px rgba(0, 180, 180, 0.1);
 }
-/* Зменшення іконки в кнопці */
 .button-card-action svg {
-  width: 0.9rem; /* Tailwind h-3.5 w-3.5 */
+  width: 0.9rem;
   height: 0.9rem;
-  margin-left: 0.3rem; /* Tailwind ml-1 */
+  margin-left: 0.3rem;
 }
 .button-card-action:hover {
   transform: translateY(-1px) scale(1.01);
@@ -366,23 +631,35 @@ onMounted(async () => {
   background-color: rgba(30, 35, 58, 0.2);
   backdrop-filter: blur(4px);
   border-radius: 10px;
-  padding: 1.5rem; /* Зменшено */
+  padding: 1.5rem;
   text-align: center;
   border: 1px dashed rgba(0, 247, 255, 0.1);
   animation: fadeInSlideUp 0.5s ease-out 0.2s backwards;
 }
-.empty-state p { color: #a0aec0; margin-bottom: 0.75rem; font-size: 0.95rem; }
-
+.empty-state p { color: #1c422c; margin-bottom: 0.75rem; font-size: 0.95rem; }
 .button-secondary {
   display: inline-block;
-  padding: 0.5rem 1rem; /* Зменшено */
+  padding: 0.5rem 1rem;
   background-color: transparent;
   color: #00f7ff;
   border: 1px solid #00f7ff;
-  font-weight: 500; /* Зменшено жирність */
+  font-weight: 500;
   text-decoration: none;
   border-radius: 6px;
-  font-size: 0.9rem; /* Зменшено шрифт */
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.button-secondary {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  color: #00f7ff;
+  border: 1px solid #00f7ff;
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
   transition: all 0.3s ease;
 }
 .button-secondary:hover {

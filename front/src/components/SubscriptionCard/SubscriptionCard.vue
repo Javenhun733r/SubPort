@@ -1,11 +1,13 @@
 <template>
-  <div class="bg-gradient-to-b from-indigo-700 to-purple-800 p-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 w-full max-w-sm mx-auto">
-    <h3 class="font-semibold text-lg mb-3 text-white">{{ title }}</h3>
-    <p class="text-2xl font-bold mb-2 text-white">{{ price }} ₴<span class="text-sm text-indigo-300">/міс</span></p>
-    <button @click="handleSubscriptionPayment" class="w-full py-2 mb-4 bg-indigo-500 text-black rounded-full font-medium hover:bg-indigo-600 transition-all duration-200">
+  <div class="subscription-card">
+    <h3 class="subscription-card__title">{{ title }}</h3>
+    <p class="subscription-card__price">
+      {{ price }} ₴<span class="subscription-card__price-period">/міс</span>
+    </p>
+    <button @click="handleSubscriptionPayment" class="subscription-card__button">
       Підписатися
     </button>
-    <p class="text-sm text-gray-300 mb-2">{{ description }}</p>
+    <p class="subscription-card__description">{{ description }}</p>
   </div>
 </template>
 
@@ -13,7 +15,7 @@
 import axios from "axios";
 
 export default {
-  props: ['id','title', 'price', 'description', 'isChat', 'username'], // Додано username в props
+  props: ['id', 'title', 'price', 'description', 'isChat', 'username'],
   data() {
     return {
       liqpayData: null,
@@ -21,35 +23,39 @@ export default {
     };
   },
   methods: {
-    async handleSubscriptionPayment(tier) {
-      if (!tier || !this.price || this.price <= 1) {
-        alert("Виберіть тариф і введіть правильну ціну.");
+    async handleSubscriptionPayment() {
+      if (!this.title || typeof this.price !== 'number' || this.price <= 0) {
+        alert("Будь ласка, переконайтеся, що всі деталі тарифу вказані правильно і ціна є коректною.");
         return;
       }
 
-      console.log(this.id);
+      console.log("Subscription ID:", this.id, "Price:", this.price, "Title:", this.title, "User:", this.username);
       try {
         const token = localStorage.getItem('jwt');
-        // Викликаємо API для створення платежу підписки
+        if (!token) {
+          alert("Помилка автентифікації. Будь ласка, увійдіть знову.");
+          return;
+        }
+
         const response = await axios.post("http://localhost:8081/api/create-subscription", {
           id: this.id,
           amount: this.price,
           title: this.title,
           username: this.username
-        },{headers: {
+        }, {
+          headers: {
             Authorization: `Bearer ${token}`
-          }});
+          }
+        });
 
         this.liqpayData = response.data.data;
         this.liqpaySignature = response.data.signature;
 
-        // Створюємо HTML форму для Liqpay
         const form = document.createElement("form");
-        form.action = "https://www.liqpay.ua/api/3/checkout"; // URL Liqpay для редиректу
+        form.action = "https://www.liqpay.ua/api/3/checkout";
         form.method = "POST";
-        form.target = "_blank"; // Відкриває сторінку в новій вкладці
+        form.target = "_blank";
 
-        // Додаємо дані для Liqpay в форму
         const dataInput = document.createElement("input");
         dataInput.type = "hidden";
         dataInput.name = "data";
@@ -63,100 +69,168 @@ export default {
         form.appendChild(dataInput);
         form.appendChild(signatureInput);
 
-        // Відправляємо форму
         document.body.appendChild(form);
         form.submit();
+        document.body.removeChild(form);
 
-        // Якщо є чат, додаємо користувача до чату
         if (this.isChat) {
-          this.$emit('addUserToChat');  // Викликаємо подію для додавання користувача до чату
+          this.$emit('addUserToChat');
         }
 
-
       } catch (error) {
-        console.error("Не вдалося здійснити оплату підписки:", error);
-        alert("Помилка при оплаті. Спробуйте ще раз.");
+        if (error.response) {
+          alert(` ${error.response.data.message || 'Не вдалося обробити запит.'}`);
+        } else if (error.request) {
+          console.error("Не вдалося здійснити оплату підписки (немає відповіді від сервера):", error.request);
+          alert("Не вдалося підключитися до сервера оплати. Перевірте ваше інтернет-з'єднання та спробуйте пізніше.");
+        } else {
+          console.error("Не вдалося здійснити оплату підписки (загальна помилка):", error);
+          alert("Сталася неочікувана помилка під час оплати. Будь ласка, спробуйте ще раз.");
+        }
       }
     },
   }
 }
 </script>
 
-
-<style scoped>
-/* Стилі для картки */
-.bg-gradient-to-b {
-  background-image: linear-gradient(180deg, rgba(59, 130, 246, 0.9) 0%, rgba(99, 102, 241, 0.9) 100%);
+<style>
+:root {
+  --neon-cyan: #00f0ff;
+  --neon-cyan-hover: #00d8e6; /* Трохи яскравіший/змінений для кнопки при наведенні */
+  --card-background: #0d1117;
+  --text-white: #ffffff;
+  --text-black: #000000;
+  --text-description: #8b949e;
+  --shadow-color: rgba(0, 220, 255, 0.3);
+  --shadow-color-hover: rgba(0, 230, 255, 0.55); /* Збільшена яскравість для ховеру картки */
+  --shadow-color-text: rgba(0, 220, 255, 0.6);
+  --button-shadow-color: rgba(0, 240, 255, 0.4); /* Тінь для кнопки */
+  --button-shadow-color-strong: rgba(0, 240, 255, 0.6); /* Сильніша тінь для пульсації кнопки */
 }
 
-.bg-gradient-to-b:hover {
-  background-image: linear-gradient(180deg, rgba(59, 130, 246, 0.7) 0%, rgba(99, 102, 241, 0.7) 100%);
-}
-
-button {
-  transition: transform 0.2s ease, background-color 0.3s ease;
-}
-button:hover {
-  transform: scale(1.05);
-}
-
-.text-indigo-300 {
-  color: #93c5fd;
-}
-
-.text-purple-200 {
-  color: #d8b4fe;
-}
-
-.shadow-xl {
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
-}
-
-.shadow-2xl {
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
-}
-
-.text-white {
-  color: #ffffff;
-}
-
-.text-gray-300 {
-  color: #e2e8f0;
-}
-
-/* Стилі для обмеження ширини картки */
-.w-full {
+.subscription-card {
+  background-color: var(--card-background);
+  padding: 1.75rem;
+  border-radius: 1rem;
+  border: 2px solid var(--neon-cyan); /* Чітка ціанова рамка */
   width: 100%;
+  max-width: 360px;
+  margin: 2rem auto;
+  /* Оновлена тінь для кращого виділення рамки */
+  box-shadow: 0 0 0 2px var(--card-background), /* Відокремлення для світіння рамки */
+  0 0 8px 2px var(--neon-cyan),   /* Яскравіше світіння близько до рамки */
+  0 0 25px 6px var(--shadow-color); /* Загальне м'яке світіння */
+  transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  position: relative; /* Для можливих псевдо-елементів у майбутньому */
 }
 
-.max-w-sm {
-  max-width: 300px; /* Обмеження ширини картки */
+.subscription-card:hover {
+  /* Оновлена тінь при наведенні */
+  box-shadow: 0 0 0 2.5px var(--card-background),
+  0 0 12px 3px var(--neon-cyan), /* Посилене світіння рамки */
+  0 0 35px 8px var(--shadow-color-hover);
+  transform: translateY(-7px); /* Трохи більший підйом */
 }
 
-.mx-auto {
-  margin-left: auto;
-  margin-right: auto; /* Центрування картки */
-}
-
-/* Заокруглення картки */
-.rounded-2xl {
-  border-radius: 1rem; /* Заокруглені краї картки */
-}
-
-/* Стилі для кнопки */
-button {
-  padding: 0.6rem 1.2rem; /* Зменшене поле кнопки */
-  border-radius: 50px; /* Заокруглені краї */
-  font-size: 0.875rem; /* Менший розмір шрифта */
+.subscription-card__title {
+  font-size: 1.625rem;
+  font-weight: 700;
+  color: var(--neon-cyan);
+  margin-bottom: 1rem;
   text-align: center;
-  color: black; /* Чорний текст на кнопці */
+  text-shadow: 0 0 5px var(--shadow-color-text), 0 0 10px var(--shadow-color-text);
 }
 
-/* Медіа-запити */
-@media (max-width: 768px) {
-  /* Стилі для мобільних пристроїв */
-  .max-w-sm {
-    max-width: 100%; /* На мобільних ширина картки займає 100% */
+.subscription-card__price {
+  font-size: 2.75rem;
+  font-weight: 800;
+  color: var(--text-white);
+  margin-bottom: 1.5rem;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.subscription-card__price-period {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--neon-cyan);
+  opacity: 0.9;
+  margin-left: 0.25rem;
+}
+
+.subscription-card__button {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  margin-bottom: 1.5rem;
+  background-color: var(--neon-cyan);
+  color: var(--text-black);
+  border: none;
+  border-radius: 50px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  outline: none;
+  position: relative; /* Для тіні */
+  /* Початкова тінь та анімація */
+  box-shadow: 0 0 8px var(--button-shadow-color), 0 0 12px var(--button-shadow-color);
+  animation: pulse-button-shadow 2.5s infinite ease-in-out;
+  transition: background-color 0.2s ease-out, transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+.subscription-card__button:hover,
+.subscription-card__button:focus {
+  background-color: var(--neon-cyan-hover);
+  transform: scale(1.05); /* Збільшене масштабування */
+  /* Яскравіша тінь при наведенні/фокусі, анімація зупиняється */
+  box-shadow: 0 0 12px var(--neon-cyan), 0 0 22px var(--neon-cyan-hover);
+  animation: none; /* Зупиняємо анімацію пульсації */
+}
+
+.subscription-card__description {
+  font-size: 0.875rem;
+  color: var(--text-description);
+  line-height: 1.6;
+  text-align: center;
+}
+
+@keyframes pulse-button-shadow {
+  0% {
+    box-shadow: 0 0 7px var(--button-shadow-color), 0 0 10px var(--button-shadow-color);
+    transform: scale(1.0);
+  }
+  50% {
+    box-shadow: 0 0 12px var(--button-shadow-color-strong), 0 0 18px var(--button-shadow-color-strong);
+    transform: scale(1.015); /* Легке збільшення під час пульсації */
+  }
+  100% {
+    box-shadow: 0 0 7px var(--button-shadow-color), 0 0 10px var(--button-shadow-color);
+    transform: scale(1.0);
+  }
+}
+
+@media (max-width: 400px) {
+  .subscription-card {
+    padding: 1.25rem;
+    max-width: 90%;
+  }
+  .subscription-card__title {
+    font-size: 1.375rem;
+  }
+  .subscription-card__price {
+    font-size: 2.25rem;
+  }
+  .subscription-card__price-period {
+    font-size: 0.875rem;
+  }
+  .subscription-card__button {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+  }
+  .subscription-card__description {
+    font-size: 0.8125rem;
   }
 }
 </style>

@@ -1,4 +1,23 @@
 import prisma from "../db/db.config.js";
+import { BlobServiceClient } from "@azure/storage-blob";
+const accountName = process.env.ACCOUNT_NAME; // Або ваше ім'я змінної, напр. ACCOUNT_NAME
+const sasToken = process.env.SAS_TOKEN;       // Або SAS_TOKEN
+const chatContainerName = process.env.CONTAINER_NAME_CHAT;
+let containerClient;
+
+if (accountName && sasToken && chatContainerName) {
+    try {
+        const blobServiceClient = new BlobServiceClient(`https://${accountName}.blob.core.windows.net/?${sasToken}`);
+        containerClient = blobServiceClient.getContainerClient(chatContainerName);
+        console.log(`Azure Blob Storage client initialized for chat container: ${chatContainerName}`);
+    } catch (error) {
+        console.error("Failed to initialize Azure Blob Storage client for chat:", error);
+        containerClient = null; // Встановлюємо в null, щоб можна було перевірити
+    }
+} else {
+    console.warn("Azure Storage credentials or chat container name are not fully configured. File uploads to Azure for chat will be disabled.");
+    containerClient = null;
+}
 
 export const createChat = async (req, res) => {
     const { name, userIds } = req.body;
@@ -173,5 +192,54 @@ export const addUserToChat = async (req, res) => {
     }
 };
 
+export const uploadChatFile = async (req, res) => {
+    if (!containerClient) {
+        console.error('uploadChatFile: Azure containerClient is not initialized.');
+        return res.status(500).json({ message: 'Помилка сервера: сховище файлів не налаштовано.' });
+    }
 
+    try {
+        if (!req.file || !req.file.buffer) {
+            console.error('uploadChatFile: Файл не було отримано або буфер файлу відсутній.');
+            return res.status(400).json({ message: 'Файл не було завантажено або він пошкоджений.' });
+        }
 
+        const uploadedFileDetails = req.file;
+        const userId = req.userId; // З вашого authMiddleware
+        const originalFileName = uploadedFileDetails.originalname.replace(/[^a-zA-Z0-9_.-]/g, '_'); // Очищення імені файлу
+
+        // Створюємо унікальне ім'я для blob, щоб уникнути колізій
+        // Можна додати chatId, якщо він передається і потрібен для структурування
+        // const chatIdFromRequest = req.body.chatId; // Якщо фронтенд надсилає chatId в FormData
+        // const blobPathPrefix = chatIdFromRequest ? `chat_${chatIdFromRequest}/` : '';
+        const blobName = `user_${userId}/${Date.now()}_${originalFileName}`;
+
+        const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+        console.log(`uploadChatFile: Uploading '${originalFileName}' to Azure Blob Storage as '${blobName}'.`);
+
+        // Завантажуємо буфер файлу в Azure
+        await blockBlobClient.uploadData(uploadedFileDetails.buffer, {
+            blobHTTPHeaders: { blobContentType: uploadedFileDetails.mimetype }
+        });
+
+        const fileUrl = blockBlobClient.url; // URL файлу в Azure
+        console.log('uploadChatFile: File uploaded successfully to Azure. URL:', fileUrl);
+
+        res.status(200).json({
+            message: 'Файл успішно завантажено в Azure.',
+            fileUrl: fileUrl,
+            fileName: uploadedFileDetails.originalname, // Повертаємо оригінальне ім'я для відображення
+            fileType: uploadedFileDetails.mimetype,
+            fileSize: uploadedFileDetails.size
+        });
+
+    } catch (error) {
+        console.error('Помилка завантаження файлу в Azure (uploadChatFile):', error);
+        // Більш детальна обробка помилок Azure, якщо потрібно
+        if (error.statusCode && error.message) {
+            return res.status(error.statusCode).json({ message: `Помилка Azure: ${error.message}` });
+        }
+        res.status(500).json({ message: 'Внутрішня помилка сервера при завантаженні файлу в Azure.' });
+    }
+};
