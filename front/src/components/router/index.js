@@ -1,5 +1,4 @@
-
-import { createRouter, createWebHistory } from "vue-router";
+import {createRouter, createWebHistory} from "vue-router";
 import WelcomePage from "@/components/Pages/WelcomePage.vue";
 import LoginPage from "@/components/Pages/LoginPage.vue";
 import SignUpPage from "@/components/Pages/SignUpPage.vue";
@@ -47,7 +46,7 @@ const router = createRouter({
             path: "/requests_page",
             name: "Requests page",
             component: AdminRequests,
-            meta: { requiresAdmin: true },
+            meta: {requiresAdmin: true},
         },
         {
             path: '/add-author',
@@ -87,23 +86,20 @@ const router = createRouter({
     ],
 });
 router.beforeEach(async (to, from, next) => {
-    // Якщо маршрут вимагає адміністратора, перевіряємо роль
     if (to.meta.requiresAdmin) {
         const token = localStorage.getItem('jwt');
 
         if (!token) {
-            // Якщо токен відсутній, редирект на сторінку логіну
             return next('/login');
         }
 
         try {
             const res = await axios.get('http://localhost:8081/profile', {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {Authorization: `Bearer ${token}`},
             });
 
-            // Перевіряємо роль користувача
             if (res.data.user?.role !== 'ADMIN') {
-                return next('/main');  // Якщо користувач не адміністратор, редирект на сторінку без доступу
+                return next('/main');
             }
         } catch (err) {
             console.error('Помилка при перевірці ролі:', err);

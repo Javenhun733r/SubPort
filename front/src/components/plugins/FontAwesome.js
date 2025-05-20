@@ -1,20 +1,28 @@
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import {library} from "@fortawesome/fontawesome-svg-core";
+import {FontAwesomeIcon} from "@fortawesome/vue-fontawesome";
 import {
     faXmark,
     faUser,
     faChevronRight,
     faChevronLeft,
     faFilter,
+    faGlobe,
+    faTrash,
+    faUpload,
+    faSpinner,
+    faCheck,
 } from "@fortawesome/free-solid-svg-icons";
 import {
     faYoutube,
     faTwitch,
     faInstagram,
-    faTiktok
+    faTiktok, faFacebook,
+    faXTwitter,
+    faLinkedin,
+    faGithub,
 } from "@fortawesome/free-brands-svg-icons";
 
-// Додавання всіх іконок у бібліотеку
+
 library.add(
     faXmark,
     faUser,
@@ -24,8 +32,16 @@ library.add(
     faYoutube,
     faTwitch,
     faInstagram,
-    faTiktok
+    faTiktok,
+    faFacebook,
+    faXTwitter,
+    faLinkedin,
+    faGithub,
+    faGlobe,
+    faTrash,
+    faUpload,
+    faSpinner,
+    faCheck,
 );
 
-// Експортуємо компонент FontAwesomeIcon
-export { FontAwesomeIcon };
+export {FontAwesomeIcon};

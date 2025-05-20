@@ -1,5 +1,5 @@
 <template>
-  <router-link :to="`/author/${creator.username}`" class="creator-card-link group">
+  <div class="creator-card-link group">
     <div class="creator-card-content">
       <div class="creator-card-header">
         <img
@@ -13,35 +13,38 @@
       <p class="creator-real-name" v-if="creator.name && creator.name !== creator.username">{{ creator.name }}</p>
       <p class="creator-genre">{{ creator.genre }}</p>
 
-      <div v-if="creator.socials && creator.socials.length > 0" class="social-icons-container">
+      <div v-if="parsedSocials && parsedSocials.length > 0" class="social-icons-container">
         <a
-            v-for="social in creator.socials"
+            v-for="social in parsedSocials"
             :key="social.name"
-            :href="social.link"
-            target="_blank"
-            rel="noopener noreferrer"
+            @click.stop="openSocialLink(social.link)"
             class="social-icon-link"
             :title="social.name"
+            role="button" tabindex="0" style="cursor: pointer;"
         >
-          <i :class="getIconClass(social.name)"></i>
+          <font-awesome-icon :icon="getIconProps(social.name)"/>
         </a>
       </div>
       <div v-else class="social-icons-placeholder"></div>
 
       <div class="button-container">
-        <span class="cta-button-card-text">
+        <span
+            @click="navigateToAuthor" class="cta-button-card-text"
+            role="button" tabindex="0" style="cursor: pointer;">
           Переглянути профіль
           <svg xmlns="http://www.w3.org/2000/svg" class="button-icon" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+            <path fill-rule="evenodd"
+                  d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                  clip-rule="evenodd"/>
           </svg>
         </span>
       </div>
     </div>
-  </router-link>
+  </div>
 </template>
 
 <script>
-// JavaScript залишається таким самим
+
 export default {
   props: {
     creator: {
@@ -49,22 +52,64 @@ export default {
       required: true
     }
   },
-  methods: {
-    getIconClass(socialNameInput) {
-      const socialName = String(socialNameInput).toLowerCase();
-      const icons = {
-        youtube: 'fab fa-youtube',
-        telegram: 'fab fa-telegram-plane',
-        instagram: 'fab fa-instagram',
-        tiktok: 'fab fa-tiktok',
-        facebook: 'fab fa-facebook-f',
-        twitter: 'fab fa-twitter',
-        linkedin: 'fab fa-linkedin-in',
-        patreon: 'fab fa-patreon',
-        website: 'fas fa-globe',
-      };
-      return icons[socialName] || 'fas fa-link';
+  computed: {
+    parsedSocials() {
+
+      if (!this.creator || !this.creator.socials) {
+        return [];
+      }
+
+      let socialsToParse = this.creator.socials;
+
+      if (typeof socialsToParse === 'string') {
+        try {
+          socialsToParse = JSON.parse(socialsToParse);
+        } catch (e) {
+          console.error(`[${this.creator.username}] Failed to parse creator.socials JSON string:`, e, this.creator.socials);
+          return [];
+        }
+      }
+
+      if (Array.isArray(socialsToParse)) {
+        const validSocials = socialsToParse.filter(s => s && typeof s.name === 'string' && typeof s.link === 'string');
+        if (validSocials.length !== socialsToParse.length) {
+
+        }
+
+        return validSocials;
+      }
+
+      console.warn(`[${this.creator.username}] creator.socials is not a string or array, or is malformed:`, this.creator.socials);
+      return [];
     }
+  },
+  methods: {
+    navigateToAuthor() {
+      this.$router.push(`/author/${this.creator.username}`);
+    },
+    openSocialLink(url) {
+      if (url) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    },
+    getIconProps(socialNameInput) {
+      const socialName = String(socialNameInput).toLowerCase();
+
+      const icons = {
+        youtube: ['fab', 'youtube'],
+        telegram: ['fab', 'telegram-plane'],
+        instagram: ['fab', 'instagram'],
+        tiktok: ['fab', 'tiktok'],
+        facebook: ['fab', 'facebook'],
+        twitter: ['fab', 'x-twitter'],
+        linkedin: ['fab', 'linkedin-in'],
+        patreon: ['fab', 'patreon'],
+        website: ['fas', 'globe'],
+        github: ['fab', 'github']
+      };
+      return icons[socialName] || ['fas', 'link'];
+    }
+
   }
 }
 </script>
@@ -76,21 +121,21 @@ export default {
   border-radius: 12px;
   overflow: hidden;
   position: relative;
-  height: 100%; /* Для однакової висоти в гріді */
-  background-color: rgba(35, 42, 66, 0.6); /* ОСНОВНИЙ ФОН КАРТКИ */
-  border: 1px solid rgba(0, 247, 255, 0.12); /* Тонка ціанова рамка */
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* М'яка тінь для глибини */
+  height: 100%;
+  background-color: rgba(35, 42, 66, 0.6);
+  border: 1px solid rgba(0, 247, 255, 0.12);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out;
 }
 
 .creator-card-link:hover {
-  transform: translateY(-5px); /* Легкий підйом */
-  box-shadow: 0 10px 25px rgba(0, 247, 255, 0.15); /* Тінь з акцентом */
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 247, 255, 0.15);
   border-color: rgba(0, 247, 255, 0.3);
 }
 
 .creator-card-content {
-  padding: 1.5rem; /* Внутрішні відступи */
+  padding: 1.5rem;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -98,105 +143,119 @@ export default {
   height: 100%;
   box-sizing: border-box;
   position: relative;
-  /* backdrop-filter НЕ ПОТРІБЕН ТУТ, якщо фон на .creator-card-link */
+
 }
 
-/* Прибираємо .creator-card-bg-shine та @keyframes spinBorder */
-
 .creator-card-header {
-  margin-bottom: 1rem; /* Збільшено відступ для "повітря" */
+  margin-bottom: 1rem;
   width: 100%;
   display: flex;
   justify-content: center;
 }
+
 .avatar-image {
-  width: 72px; /* Золотий перетин, класичний розмір */
+  width: 72px;
   height: 72px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #00a1a8; /* Приглушений ціан для рамки */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* Тонша тінь */
+  border: 2px solid #00a1a8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+
 .group:hover .avatar-image {
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 247, 255, 0.2); /* Тінь з акцентом при наведенні */
+  box-shadow: 0 4px 12px rgba(0, 247, 255, 0.2);
 }
 
 .creator-name {
-  font-size: 1.15rem; /* Чіткий, але не кричущий */
-  font-weight: 600; /* Semi-bold */
-  color: #e0e0e0; /* Світло-сірий, а не яскравий акцент */
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #e0e0e0;
   margin-bottom: 0.2rem;
   transition: color 0.3s ease;
-  word-break: break-word; /* Дозволяє переносити довгі нікнейми */
+  word-break: break-word;
 }
+
 .group:hover .creator-name {
-  color: #00f7ff; /* Акцентний колір при наведенні на картку */
+  color: #00f7ff;
 }
 
 .creator-real-name {
   font-size: 0.8rem;
-  color: #90a0b0; /* Більш приглушений сірий */
+  color: #90a0b0;
   margin-bottom: 0.35rem;
-  font-style: normal; /* Прибираємо курсив для більш строгого вигляду */
+  font-style: normal;
 }
 
 .creator-genre {
-  font-size: 0.75rem; /* Компактний */
-  color: #7a8c9e; /* Ще більш приглушений */
-  margin-bottom: 1.25rem; /* Більше відступу перед іконками */
+  font-size: 0.75rem;
+  color: #7a8c9e;
+  margin-bottom: 1.25rem;
   line-height: 1.5;
-  min-height: 2.25em; /* 0.75rem * 1.5 * 2 рядки */
+  min-height: 2.25em;
 }
 
 .social-icons-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 0.75rem; /* Трохи менший відступ */
-  margin-top: 0.25rem; /* Зменшено */
+  gap: 0.75rem;
+  margin-top: 0.25rem;
   margin-bottom: 1.25rem;
-  min-height: 1.5rem; /* Зменшено */
+  min-height: 1.5rem;
 }
-.social-icons-placeholder { min-height: calc(1.5rem + 0.25rem + 1.25rem); }
+
+.social-icons-placeholder {
+  min-height: calc(1.5rem + 0.25rem + 1.25rem);
+}
 
 .social-icon-link i {
-  font-size: 1rem; /* Компактні іконки */
+  font-size: 1rem;
   color: #7f9eb2;
   transition: color 0.25s ease, transform 0.25s ease;
 }
+
 .social-icon-link:hover i {
-  color: #00e0e8; /* Трохи світліший ціан */
-  transform: translateY(-2px); /* Легкий підйом іконки */
+  color: #00e0e8;
+  transform: translateY(-2px);
 }
 
 .button-container {
   margin-top: auto;
   width: 100%;
-  padding-top: 0.5rem; /* Зменшено */
+  padding-top: 0.5rem;
+  display: flex;
+  justify-content: center;
 }
+
 .cta-button-card-text {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  padding: 0.6rem 0.85rem; /* Зменшено */
-  background-color: rgba(0, 247, 255, 0.1); /* Напівпрозорий акцентний фон */
-  color: #00f7ff; /* Акцентний текст */
+
+  padding: 0.6rem 0.85rem;
+  background-color: rgba(0, 247, 255, 0.1);
+  color: #00f7ff;
   font-size: 0.8rem;
-  font-weight: 500; /* Medium */
+  font-weight: 500;
   text-decoration: none;
   border-radius: 6px;
-  border: 1px solid rgba(0, 247, 255, 0.2); /* Тонка акцентна рамка */
+  border: 1px solid rgba(0, 247, 255, 0.2);
   transition: all 0.3s ease;
 }
+
 .creator-card-link:hover .cta-button-card-text {
   background-color: rgba(0, 247, 255, 0.2);
   border-color: rgba(0, 247, 255, 0.4);
   color: #9effff;
-  box-shadow: 0 2px 8px rgba(0, 247, 255, 0.1); /* Легка тінь при наведенні на картку */
-  transform: none; /* Прибираємо transform з кнопки, оскільки картка вже анімується */
+  box-shadow: 0 2px 8px rgba(0, 247, 255, 0.1);
+  transform: none;
 }
-.button-icon { width: 0.8rem; height: 0.8rem; margin-left: 0.25rem; }
+
+.button-icon {
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-left: 0.25rem;
+}
 </style>

@@ -12,12 +12,14 @@
 
         <div class="form-group">
           <label for="email">Електронна пошта</label>
-          <input type="email" id="email" v-model="email" class="input-field" placeholder="your@email.com" required @input="clearError">
+          <input type="email" id="email" v-model="email" class="input-field" placeholder="your@email.com" required
+                 @input="clearError">
         </div>
 
         <div class="form-group">
           <label for="password">Пароль</label>
-          <input type="password" id="password" v-model="password" class="input-field" placeholder="••••••••" required @input="clearError">
+          <input type="password" id="password" v-model="password" class="input-field" placeholder="••••••••" required
+                 @input="clearError">
         </div>
 
         <button type="submit" class="cta-button" :disabled="isLoading">
@@ -29,7 +31,8 @@
       <div class="extra-links">
         <router-link to="/forgot-password" class="extra-link">Забули пароль?</router-link>
         <p class="text-gray-400 text-sm">
-          Немає акаунту? <router-link to="/signup" class="extra-link highlight">Зареєструватися</router-link>
+          Немає акаунту?
+          <router-link to="/signup" class="extra-link highlight">Зареєструватися</router-link>
         </p>
       </div>
     </div>
@@ -54,7 +57,7 @@ export default {
     },
     async login() {
       this.isLoading = true;
-      this.errorMessage = ""; // Скидаємо попередні помилки
+      this.errorMessage = "";
       const userData = {
         email: this.email,
         password: this.password,
@@ -66,20 +69,18 @@ export default {
 
         if (token) {
           localStorage.setItem("jwt", token);
-          // console.log("JWT збережено:", token);
-          // Замість window.location.href для SPA краще використовувати this.$router.push
+
           this.$router.push('/main').then(() => {
-            // Опціонально: оновити сторінку, щоб Navbar підхопив зміни isAuth,
-            // хоча краще це робити через більш реактивний підхід (Vuex/Pinia або provide/inject)
+
             window.location.reload();
           });
 
         } else {
           this.errorMessage = "Не вдалося отримати токен авторизації.";
-          // console.error("JWT не отримано");
+
         }
       } catch (error) {
-        // console.error("Login failed: ", error);
+
         if (error.response && error.response.data) {
           this.errorMessage = error.response.data.message || "Помилка входу. Перевірте дані та спробуйте знову.";
         } else if (error.request) {
@@ -96,27 +97,26 @@ export default {
 </script>
 
 <style scoped>
-/* Припускаємо, що глобальний фон #121828 та шрифт "Raleway" встановлені */
 
 .login-page-wrapper {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem; /* Падінги для мобільних */
-  font-family: "Raleway", sans-serif; /* Переконуємось, що шрифт застосований */
+  padding: 2rem 1rem;
+  font-family: "Raleway", sans-serif;
 }
 
 .login-form-container {
-  background-color: rgba(30, 35, 58, 0.75); /* Напівпрозорий фон "скла" */
+  background-color: rgba(30, 35, 58, 0.75);
   backdrop-filter: blur(12px) saturate(160%);
   border-radius: 16px;
-  padding: 2rem 2.5rem; /* Збільшено падінги */
+  padding: 2rem 2.5rem;
   border: 1px solid rgba(0, 247, 255, 0.15);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
-  max-width: 420px; /* Трохи збільшена ширина */
+  max-width: 420px;
   width: 100%;
-  text-align: left; /* Вирівнювання тексту в формі по лівому краю */
+  text-align: left;
 }
 
 .logo-container {
@@ -124,65 +124,65 @@ export default {
   margin-bottom: 2rem;
 }
 
-.login-logo { /* Якщо у вас є логотип */
+.login-logo {
   max-width: 150px;
   margin-bottom: 1rem;
 }
 
 .login-title {
-  color: #00f7ff; /* Акцентний ціан */
-  font-size: 2.25rem; /* Збільшено */
+  color: #00f7ff;
+  font-size: 2.25rem;
   font-weight: 600;
-  margin-bottom: 0.5rem; /* Зменшено відступ, якщо немає лого */
+  margin-bottom: 0.5rem;
 }
 
 .form-group {
-  margin-bottom: 1.5rem; /* Збільшено відступ */
+  margin-bottom: 1.5rem;
 }
 
 label {
   display: block;
-  color: #a0aec0; /* Світло-сірий */
-  font-size: 0.875rem; /* 14px */
+  color: #a0aec0;
+  font-size: 0.875rem;
   font-weight: 500;
   margin-bottom: 0.5rem;
 }
 
 .input-field {
   width: 100%;
-  padding: 0.875rem 1rem; /* Збільшено падінги */
-  border-radius: 8px; /* Більше заокруглення */
-  background-color: rgba(10, 15, 35, 0.6); /* Дуже темний, напівпрозорий */
+  padding: 0.875rem 1rem;
+  border-radius: 8px;
+  background-color: rgba(10, 15, 35, 0.6);
   border: 1px solid rgba(0, 247, 255, 0.2);
-  color: #e0e0e0; /* Світлий текст вводу */
+  color: #e0e0e0;
   font-size: 1rem;
   transition: all 0.3s ease;
-  box-sizing: border-box; /* Важливо для правильного розрахунку ширини */
+  box-sizing: border-box;
 }
 
 .input-field::placeholder {
-  color: #718096; /* Сірий для плейсхолдера */
+  color: #718096;
 }
 
 .input-field:focus {
   outline: none;
   border-color: #00f7ff;
-  background-color: rgba(10, 15, 35, 0.8); /* Трохи темніший при фокусі */
+  background-color: rgba(10, 15, 35, 0.8);
   box-shadow: 0 0 0 3px rgba(0, 247, 255, 0.15);
 }
 
 .cta-button {
   width: 100%;
-  padding: 0.875rem 1rem; /* Узгоджено з інпутами */
-  background: linear-gradient(90deg, #00f7ff, #3675f4); /* Оновлений градієнт */
-  color: #121828; /* Темний текст для контрасту */
+  padding: 0.875rem 1rem;
+  background: linear-gradient(90deg, #00f7ff, #3675f4);
+  color: #121828;
   font-weight: 600;
   border-radius: 8px;
   transition: all 0.3s ease;
   border: none;
   cursor: pointer;
-  font-size: 1.05rem; /* Трохи більший шрифт */
-  margin-top: 1rem; /* Додано відступ зверху */
+  font-size: 1.05rem;
+  margin-top: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -191,7 +191,7 @@ label {
 .cta-button:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 220, 220, 0.25);
-  background: linear-gradient(90deg, #23ffff, #538dff); /* Світліший градієнт при наведенні */
+  background: linear-gradient(90deg, #23ffff, #538dff);
 }
 
 .cta-button:disabled {
@@ -213,12 +213,16 @@ label {
 }
 
 @keyframes button-rotation {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .error-message {
-  color: #ff9a9a; /* Світло-червоний для помилок */
+  color: #ff9a9a;
   background-color: rgba(255, 0, 0, 0.1);
   border: 1px solid rgba(255, 0, 0, 0.2);
   padding: 0.75rem 1rem;
@@ -235,13 +239,13 @@ label {
 }
 
 .extra-link {
-  color: #a0aec0; /* Світло-сірий */
+  color: #a0aec0;
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 .extra-link:hover {
-  color: #00f7ff; /* Акцентний при наведенні */
+  color: #00f7ff;
   text-decoration: underline;
 }
 
@@ -251,6 +255,6 @@ label {
 }
 
 .extra-links p {
-  margin-top: 0.75rem; /* Відступ між посиланнями */
+  margin-top: 0.75rem;
 }
 </style>

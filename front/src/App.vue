@@ -1,9 +1,9 @@
 <!-- App.vue -->
 <template>
   <div class="app">
-    <Navigation />
+    <Navigation/>
     <main>
-      <router-view />
+      <router-view/>
     </main>
     <footer></footer>
   </div>
@@ -27,7 +27,6 @@ body, html, #app {
   animation: gradientBG 25s ease infinite;;
 }
 
-/* Щоб контент не налипав */
 main {
   flex: 1;
   padding: 20px;

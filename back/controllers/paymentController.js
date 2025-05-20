@@ -7,7 +7,7 @@ const publicKey = process.env.LIQPAY_PUBLIC_KEY;
 const privateKey = process.env.LIQPAY_PRIVATE_KEY;
 const liqpay = new LiqPay(publicKey, privateKey); // Ініціалізуємо один раз
 
-const LIQPAY_SERVER_CALLBACK_URL = process.env.LIQPAY_SERVER_CALLBACK_URL || 'https://d47f-188-163-8-6.ngrok-free.app/api/callback';
+const LIQPAY_SERVER_CALLBACK_URL = process.env.LIQPAY_SERVER_CALLBACK_URL ;
 const LIQPAY_API_URL = 'https://www.liqpay.ua/api/request'; // Правильний URL для серверних API запитів
 
 // ... функції createDonation та createSubscription залишаються без змін ...

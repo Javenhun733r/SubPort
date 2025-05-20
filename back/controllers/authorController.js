@@ -14,8 +14,10 @@ export const getAuthorByUsername = async (req, res) => {
             where: { username },
             include: {
                 posts: {
+                    orderBy: { createdAt: 'desc' },
                     include: {
                         Comment: {
+                            orderBy: { createdAt: 'asc' },
                             include: {
                                 user: {
                                     select: {
@@ -37,49 +39,6 @@ export const getAuthorByUsername = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error' });
-    }
-};
-
-
-
-export const createAuthor = async (req, res) => {
-    const {
-        username,
-        name,
-        avatarUrl,
-        bio,
-        tiers,
-        twitterUrl,
-        linkedinUrl,
-        twitchUrl,
-        youtubeUrl,
-        instagramUrl,
-        tiktokUrl
-    } = req.body;
-
-    try {
-        const newAuthor = await prisma.author.create({
-            data: {
-                username,
-                name,
-                avatarUrl,
-                bio,
-                twitterUrl,   // Зберігаємо Twitter URL
-                linkedinUrl,  // Зберігаємо LinkedIn URL
-                twitchUrl,    // Зберігаємо Twitch URL
-                youtubeUrl,   // Зберігаємо YouTube URL
-                instagramUrl, // Зберігаємо Instagram URL
-                tiktokUrl,    // Зберігаємо TikTok URL
-                tiers: {
-                    create: tiers,  // Створюємо підписки разом з автором
-                },
-            },
-        });
-
-        res.status(201).json(newAuthor);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({message: 'Failed to create author'});
     }
 };
 
@@ -132,23 +91,22 @@ export const approveAuthorRequest = async (req, res) => {
     const {requestId} = req.params;
 
     try {
-        // Отримуємо запит по ID
         const request = await prisma.authorRequest.findUnique({
             where: { id: Number(requestId) }
         });
 
-        // Перевірка, чи існує запит
+
         if (!request) {
             return res.status(404).json({message: 'Request not found'});
         }
 
-        // Оновлюємо статус запиту
+
         await prisma.authorRequest.update({
             where: {id: Number(requestId)},
             data: {status: 'APPROVED'}
         });
 
-        const userId = request.userId;  // припускаючи, що користувач автентифікований через JWT
+        const userId = request.userId;
 
         const newAuthor = await prisma.author.create({
             data: {
@@ -158,7 +116,7 @@ export const approveAuthorRequest = async (req, res) => {
                 avatarUrl: request.avatarFile,
                 genre: request.genre,
                 socials: request.socials ? JSON.parse(request.socials) : null,
-                userId: userId, // беремо userId з JWT
+                userId: userId,
                 tiers: {
                     create: request.tiers || [],
                 },
@@ -166,11 +124,11 @@ export const approveAuthorRequest = async (req, res) => {
         });
         await prisma.chat.create({
             data: {
-                name: `Чат ${request.name}`, // Назва чату
-                creatorId: userId,  // Це ID автора, який створює чат
-                authorId: newAuthor.id,  // Прив'язка чату до нового автора
+                name: `Чат ${request.name}`,
+                creatorId: userId,
+                authorId: newAuthor.id,
                 participants: {
-                    create: { userId } // Спочатку додається тільки автор як учасник
+                    create: { userId }
                 }
             }
         });
@@ -186,17 +144,15 @@ export const rejectAuthorRequest = async (req, res) => {
     const {requestId} = req.params;
 
     try {
-        // Отримуємо запит по ID
         const request = await prisma.authorRequest.findUnique({
             where: {id: Number(requestId)}
         });
 
-        // Перевірка, чи існує запит
         if (!request) {
             return res.status(404).json({message: 'Request not found'});
         }
 
-        // Оновлюємо статус запиту на "REJECTED"
+
         await prisma.authorRequest.update({
             where: {id: Number(requestId)},
             data: {status: 'REJECTED'}
@@ -225,7 +181,7 @@ export const checkAdmin = async (req, res, next) => {
             return res.status(403).json({message: 'Access denied'});
         }
 
-        next();  // Викликаємо наступний middleware, якщо користувач є адміном
+        next();
     } catch (err) {
         console.error(err);
         res.status(500).json({message: 'Server error'});
@@ -261,7 +217,6 @@ export const getProfile = async (req, res) => {
             return res.status(404).json({ error: "User not found" });
         }
 
-        // Отримуємо авторські сторінки користувача
         const userAuthorPages = await prisma.author.findMany({
             where: { userId: userId },
             select: {
@@ -273,7 +228,6 @@ export const getProfile = async (req, res) => {
             }
         });
 
-        // Отримуємо підписки користувача
         const userSubscriptions = await prisma.tierSubscription.findMany({
             where: { userId: userId },
             include: {
@@ -287,7 +241,6 @@ export const getProfile = async (req, res) => {
             }
         });
 
-        // Повертаємо профіль, авторські сторінки та підписки
         return res.status(200).json({
             user,
             authorPages: userAuthorPages,
@@ -329,19 +282,46 @@ export const updateProfile = async (req, res) => {
 };
 export const createPost = async (req, res) => {
     const { title, content } = req.body;
+    const authorId = Number(req.params.id); // ID автора з параметрів маршруту
+    let imageUrl = null;
+
+    if (!title || !content) {
+        return res.status(400).json({ message: "Title and content are required" });
+    }
 
     try {
         const author = await prisma.author.findUnique({
-            where: { id: Number(req.params.id) }
+            where: { id: authorId }
         });
 
-        if (!author) return res.status(404).json({ message: "Author not found" });
+        if (!author) {
+            return res.status(404).json({ message: "Author not found" });
+        }
+
+        if (author.userId !== req.userId) {
+            return res.status(403).json({ message: "You are not authorized to create posts for this author" });
+        }
+
+        if (req.file) {
+            const blobName = `posts/${authorId}/${Date.now()}_${req.userId}_${req.file.originalname}`;
+            const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+            await blockBlobClient.uploadData(req.file.buffer, {
+                blobHTTPHeaders: { blobContentType: req.file.mimetype }
+            });
+            imageUrl = blockBlobClient.url;
+        }
 
         const newPost = await prisma.post.create({
             data: {
                 title,
                 content,
+                imageUrl,
                 authorId: author.id
+            },
+            include: {
+                author: {
+                    select: { username: true, name: true, avatarUrl: true }
+                }
             }
         });
 
@@ -366,10 +346,10 @@ export const createTier = async (req, res) => {
         const newTier = await prisma.tier.create({
             data: {
                 title,
-                price: parseFloat(price),  // якщо price приходить як рядок
+                price: parseFloat(price),
                 description,
                 authorId: author.id,
-                isChat: isChat || false // Зберігаємо значення для isChat
+                isChat: isChat || false
             }
         });
 
@@ -400,18 +380,17 @@ export const isOwner = async (req, res) => {
         return res.status(401).json({isOwner: false});
     }
 };
-// Controller для підтвердження підписки користувача
+
 export const subscribeToTier = async (req, res) => {
     const { userId, tierId } = req.body;
 
     try {
-        // Отримуємо рівень підписки
         const tier = await prisma.tier.findUnique({
             where: {
                 id: tierId
             },
             include: {
-                author: true // Автор, до якого належить цей рівень підписки
+                author: true
             }
         });
 
@@ -419,7 +398,6 @@ export const subscribeToTier = async (req, res) => {
             return res.status(404).json({ message: 'Рівень підписки не знайдений' });
         }
 
-        // Перевірка чи автор створив чат для цього рівня підписки
         const chat = await prisma.chat.findFirst({
             where: {
                 authorId: tier.authorId
@@ -430,7 +408,6 @@ export const subscribeToTier = async (req, res) => {
             return res.status(404).json({ message: 'Чат для цього автора не знайдено' });
         }
 
-        // Додавання користувача до чату
         await prisma.chatUser.create({
             data: {
                 chatId: chat.id,
@@ -438,13 +415,11 @@ export const subscribeToTier = async (req, res) => {
             }
         });
 
-        // Оновлення статусу підписки користувача (якщо потрібно)
         await prisma.user.update({
             where: {
                 id: userId
             },
             data: {
-                // Можна зберегти інформацію про рівень підписки, якщо потрібно
             }
         });
 
@@ -456,12 +431,17 @@ export const subscribeToTier = async (req, res) => {
 };
 export const createComment = async (req, res) => {
     const { text } = req.body;
-    const userId = req.userId;  // Витягуємо userId з JWT
+    const userId = req.userId;
     const postId = Number(req.params.postId);
+    let imageUrl = null;
 
-    if (!text || !userId) {
-        return res.status(400).json({ message: 'Missing required fields' });
+    if (!text && !req.file) { // Коментар може бути текстом, або картинкою, або і тим і іншим
+        return res.status(400).json({ message: 'Comment text or image is required' });
     }
+    if (!userId) { // userId має бути з JWT middleware
+        return res.status(401).json({ message: 'User not authenticated' });
+    }
+
 
     try {
         const post = await prisma.post.findUnique({
@@ -472,16 +452,25 @@ export const createComment = async (req, res) => {
             return res.status(404).json({ message: 'Post not found' });
         }
 
-        // Створюємо коментар
+        if (req.file) {
+            const blobName = `comments/${postId}/${Date.now()}_${userId}_${req.file.originalname}`;
+            const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+            await blockBlobClient.uploadData(req.file.buffer, {
+                blobHTTPHeaders: { blobContentType: req.file.mimetype }
+            });
+            imageUrl = blockBlobClient.url;
+        }
+
         const newComment = await prisma.comment.create({
             data: {
-                text,
+                text: text || "", // Якщо тексту немає, але є картинка, зберігаємо порожній рядок
+                imageUrl,
                 postId: postId,
                 userId: Number(userId)
             },
             include: {
                 user: {
-                    select: { name: true }  // Додати ім’я користувача в результат (опціонально)
+                    select: { id: true, name: true }
                 }
             }
         });
@@ -516,29 +505,64 @@ export const getCommentsByPost = async (req, res) => {
     }
 };
 export const deleteComment = async (req, res) => {
-    const { commentId } = req.params;
+    const commentId = Number(req.params.commentId);
+    const currentUserId = req.userId; // ID поточного залогіненого користувача (з verifyToken)
 
     try {
         const comment = await prisma.comment.findUnique({
-            where: { id: Number(commentId) }
+            where: { id: commentId }
         });
 
         if (!comment) {
             return res.status(404).json({ message: 'Comment not found' });
         }
 
-        // Перевіряємо, чи є у користувача доступ до цього коментаря
-        if (comment.userId !== req.userId) {
+        // Розширена перевірка авторизації:
+        let authorized = false;
+        if (comment.userId === currentUserId) { // Чи є користувач автором коментаря?
+            authorized = true;
+        } else {
+            // Якщо ні, перевіряємо, чи є користувач автором поста, якому належить коментар
+            const post = await prisma.post.findUnique({
+                where: { id: comment.postId },
+                include: {
+                    author: { // Потрібно для отримання userId автора поста
+                        select: { userId: true }
+                    }
+                }
+            });
+            if (post && post.author && post.author.userId === currentUserId) {
+                authorized = true;
+            }
+        }
+
+        if (!authorized) {
             return res.status(403).json({ message: 'You are not authorized to delete this comment' });
         }
 
+        // Видалення зображення коментаря з Azure, якщо воно є
+        if (comment.imageUrl) {
+            const blobName = getBlobNameFromUrl(comment.imageUrl);
+            if (blobName) {
+                try {
+                    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+                    await blockBlobClient.deleteIfExists();
+                    console.log(`Successfully deleted comment image blob: ${blobName}`);
+                } catch (blobError) {
+                    console.error(`Failed to delete comment image blob ${blobName} from Azure:`, blobError);
+                    // Ви можете вирішити, чи продовжувати видалення з БД, якщо видалення файлу не вдалося
+                }
+            }
+        }
+
+        // Видалення коментаря з бази даних
         await prisma.comment.delete({
-            where: { id: Number(commentId) }
+            where: { id: commentId }
         });
 
-        res.status(200).json({ message: 'Comment deleted' });
+        res.status(200).json({ message: 'Comment deleted successfully' });
     } catch (err) {
-        console.error(err);
+        console.error('Error deleting comment:', err);
         res.status(500).json({ message: 'Failed to delete comment' });
     }
 };
@@ -546,7 +570,6 @@ export const getSimilarAuthors = async (req, res) => {
     const { username } = req.params;
 
     try {
-        // Знаходимо автора за username
         const currentAuthor = await prisma.author.findUnique({
             where: { username },
             select: { genre: true }
@@ -559,8 +582,8 @@ export const getSimilarAuthors = async (req, res) => {
         const similarAuthors = await prisma.$queryRaw`
             SELECT * FROM "Author"
             WHERE genre = ${currentAuthor.genre} AND username != ${username}
-            ORDER BY RANDOM()
-            LIMIT 3
+            ORDER BY "subscribers" DESC 
+                LIMIT 3
         `;
 
         res.status(200).json(similarAuthors);
@@ -570,4 +593,85 @@ export const getSimilarAuthors = async (req, res) => {
     }
 };
 
+export const deletePost = async (req, res) => {
+    const postId = Number(req.params.postId);
+    const currentUserId = req.userId;
+
+    try {
+        const post = await prisma.post.findUnique({
+            where: { id: postId },
+            include: {
+                author: true,
+                Comment: {
+                    select: { imageUrl: true }
+                }
+            }
+        });
+
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+
+        if (post.author.userId !== currentUserId) {
+            return res.status(403).json({ message: 'You are not authorized to delete this post' });
+        }
+
+        for (const comment of post.Comment) {
+            if (comment.imageUrl) {
+                const commentBlobName = getBlobNameFromUrl(comment.imageUrl);
+                if (commentBlobName) {
+                    try {
+                        const blobClient = containerClient.getBlockBlobClient(commentBlobName);
+                        await blobClient.deleteIfExists();
+                    } catch (blobError) {
+                        console.error(`Failed to delete comment image blob ${commentBlobName}:`, blobError);
+
+                    }
+                }
+            }
+        }
+
+        if (post.imageUrl) {
+            const postBlobName = getBlobNameFromUrl(post.imageUrl);
+            if (postBlobName) {
+                try {
+                    const blobClient = containerClient.getBlockBlobClient(postBlobName);
+                    await blobClient.deleteIfExists();
+                } catch (blobError) {
+                    console.error(`Failed to delete post image blob ${postBlobName}:`, blobError);
+                }
+            }
+        }
+
+
+        await prisma.post.delete({
+            where: { id: postId }
+        });
+
+        res.status(200).json({ message: 'Post and associated comments and images deleted successfully' });
+    } catch (err) {
+        console.error('Error deleting post:', err);
+        res.status(500).json({ message: 'Failed to delete post' });
+    }
+};
+const getBlobNameFromUrl = (url) => {
+    if (!url) return null;
+    try {
+        const urlParts = new URL(url);
+
+        const pathSegments = urlParts.pathname.split('/');
+
+        if (pathSegments.length > 2 && pathSegments[1] === containerName) {
+            return pathSegments.slice(2).join('/');
+        }
+        if (pathSegments.length > 0) {
+            return pathSegments[pathSegments.length -1];
+        }
+        return null;
+    } catch (error) {
+        console.error("Error parsing blob URL to get blob name:", error);
+        return null;
+    }
+};
 

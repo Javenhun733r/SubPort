@@ -38,28 +38,27 @@
 import axios from "axios";
 
 export default {
-  name: "Nav-bar", // Змінено на Nav-bar для відповідності імені компонента
+  name: "Nav-bar",
   data() {
     return {
       isAuth: false,
       isAdmin: false,
       jwt: "",
-      isMobileMenuOpen: false, // Для стану мобільного меню
+      isMobileMenuOpen: false,
     };
   },
   async mounted() {
     this.checkAuthState();
-    window.addEventListener('storage', this.handleStorageChange); // Слухаємо зміни в localStorage
+    window.addEventListener('storage', this.handleStorageChange);
   },
-  beforeUnmount() { // Використовуємо beforeUnmount для Vue 3
+  beforeUnmount() {
     window.removeEventListener('storage', this.handleStorageChange);
   },
   watch: {
     '$route'() {
-      // Перевіряти стан авторизації при кожній зміні маршруту,
-      // якщо це необхідно для вашої логіки (наприклад, якщо токен може стати недійсним)
+
       this.checkAuthState();
-      this.closeMobileMenu(); // Закривати мобільне меню при переході по посиланню
+      this.closeMobileMenu();
     }
   },
   methods: {
@@ -76,31 +75,31 @@ export default {
           this.isAdmin = res.data.user.role === 'ADMIN';
         } catch (error) {
           console.error("Error fetching profile:", error);
-          // Можливо, токен недійсний, варто розлогінити користувача
+
           if (error.response && (error.response.status === 401 || error.response.status === 403)) {
             this.performLogoutActions();
-            this.$router.push('/login'); // Редірект на сторінку входу
+            this.$router.push('/login');
           }
         }
       } else {
-        this.isAdmin = false; // Якщо не авторизований, то не адмін
+        this.isAdmin = false;
       }
     },
     performLogoutActions() {
       this.isAuth = false;
       this.isAdmin = false;
-      this.jwt = ""; // Очистити токен з data
+      this.jwt = "";
       localStorage.removeItem("jwt");
       this.closeMobileMenu();
     },
     logout() {
       this.performLogoutActions();
-      // Редірект на головну або сторінку входу, якщо потрібно
-      if (this.$route.meta.requiresAuth) { // Якщо поточний маршрут вимагає авторизації
+
+      if (this.$route.meta.requiresAuth) {
         this.$router.push('/');
       }
     },
-    handleLogout() { // Окремий метод для кнопки, щоб можна було додати closeMobileMenu
+    handleLogout() {
       this.logout();
       this.closeMobileMenu();
     },
@@ -112,7 +111,7 @@ export default {
     },
     handleStorageChange(event) {
       if (event.key === 'jwt') {
-        // JWT токен змінився в іншому вікні/вкладці
+
         this.checkAuthState();
       }
     }
@@ -122,10 +121,10 @@ export default {
 
 <style scoped>
 .navbar {
-  background-color: #1a1a1a; /* Темний фон */
-  color: #f0f0f0; /* Світлий текст */
+  background-color: #1a1a1a;
+  color: #f0f0f0;
   padding: 15px 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* Більш виразна тінь для темного фону */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   position: sticky;
   top: 0;
   left: 0;
@@ -144,18 +143,18 @@ export default {
 }
 
 .logo {
-  font-size: 2rem; /* Ще трохи більший лого */
+  font-size: 2rem;
   font-weight: 700;
 }
 
 .text-logo {
   text-decoration: none;
-  color: #00f7ff; /* Яскравий акцентний колір для лого */
+  color: #00f7ff;
   transition: color 0.3s ease;
 }
 
 .text-logo:hover {
-  color: #5ae5e5; /* Трохи світліший при наведенні */
+  color: #5ae5e5;
 }
 
 .nav-links {
@@ -167,33 +166,32 @@ export default {
 }
 
 .nav-links li {
-  margin-left: 30px; /* Трохи більші відступи */
+  margin-left: 30px;
 }
 
 .nav-links li a,
 .nav-links li button {
   color: #e0e0e0;
   text-decoration: none;
-  font-size: 1.1rem; /* Трохи більший шрифт посилань */
+  font-size: 1.1rem;
   font-weight: 500;
   padding: 10px 15px;
-  border-radius: 8px; /* Більш помітне заокруглення */
+  border-radius: 8px;
   transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
   display: block;
 }
 
 .nav-links li a:hover,
 .nav-links li button:hover {
-  background-color: rgba(0, 247, 255, 0.1); /* Легкий акцентний фон при наведенні */
+  background-color: rgba(0, 247, 255, 0.1);
   color: #00f7ff;
-  transform: scale(1.05); /* Легке збільшення при наведенні */
+  transform: scale(1.05);
 }
 
-/* Стиль для активного посилання */
 .nav-links li a.router-link-exact-active {
   color: #00f7ff;
   font-weight: 700;
-  background-color: rgba(0, 247, 255, 0.2); /* Більш виражений акцентний фон для активного */
+  background-color: rgba(0, 247, 255, 0.2);
 }
 
 .logout-button,
@@ -213,20 +211,18 @@ export default {
   background-color: #5ae5e5;
   color: #1a1a1a;
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 2px 6px rgba(0, 247, 255, 0.4); /* Акцентна тінь при наведенні */
+  box-shadow: 0 2px 6px rgba(0, 247, 255, 0.4);
 }
 
 .signup-button {
-  background-color: #2ecc71; /* Інший акцентний колір для реєстрації */
-  color: #1a1a1a; /* Темний текст для контрасту */
+  background-color: #2ecc71;
+  color: #1a1a1a;
 }
 .signup-button:hover {
-  background-color: #27ae60; /* Трохи темніший зелений */
+  background-color: #27ae60;
   color: #1a1a1a;
 }
 
-
-/* --- Мобільне меню --- */
 .mobile-nav-toggle {
   display: none;
   background: none;
@@ -237,7 +233,7 @@ export default {
 }
 
 .hamburger-box {
-  width: 35px; /* Збільшено для кращої видимості */
+  width: 35px;
   height: 28px;
   display: inline-block;
   position: relative;
@@ -246,10 +242,10 @@ export default {
 .hamburger-inner {
   display: block;
   top: 50%;
-  margin-top: -1.5px; /* Половина висоти лінії (3px / 2) */
+  margin-top: -1.5px;
   width: 100%;
-  height: 3px; /* Товщина лінії */
-  background-color: #f0f0f0; /* Колір ліній гамбургера на темному фоні */
+  height: 3px;
+  background-color: #f0f0f0;
   border-radius: 3px;
   position: absolute;
   transition-property: transform;
@@ -279,7 +275,6 @@ export default {
   bottom: -10px;
 }
 
-/* Анімація гамбургера в хрестик */
 .mobile-nav-toggle.is-active .hamburger-inner {
   transform: rotate(45deg);
   transition-delay: 0.12s;
@@ -296,7 +291,6 @@ export default {
   transition: bottom 0.1s ease-out, transform 0.25s cubic-bezier(0.215, 0.61, 0.355, 1) 0.12s;
 }
 
-
 @media (max-width: 768px) {
   .nav-links {
     display: none;
@@ -304,12 +298,12 @@ export default {
     top: 100%;
     left: 0;
     width: 100%;
-    background-color: #1a1a1a; /* Темний фон для мобільного меню */
+    background-color: #1a1a1a;
     flex-direction: column;
     align-items: stretch;
     padding: 10px 0;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    border-top: 1px solid #222; /* Трохи світліший бордер для темної теми */
+    border-top: 1px solid #222;
   }
 
   .nav-links.open {
@@ -318,7 +312,7 @@ export default {
   }
 
   @keyframes slideIn {
-    from { transform: translateY(-20px); opacity: 0; } /* Починаємо трохи вище */
+    from { transform: translateY(-20px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
   }
 
@@ -330,9 +324,9 @@ export default {
 
   .nav-links li a,
   .nav-links li button {
-    padding: 18px 20px; /* Збільшено падінги для зручності на мобільних */
+    padding: 18px 20px;
     border-radius: 0;
-    border-bottom: 1px solid #252525; /* Розділювач між пунктами */
+    border-bottom: 1px solid #252525;
   }
   .nav-links li:last-child a,
   .nav-links li:last-child button {
@@ -341,7 +335,7 @@ export default {
 
   .nav-links li a:hover,
   .nav-links li button:hover {
-    background-color: rgba(0, 247, 255, 0.15); /* Трохи яскравіший ховер */
+    background-color: rgba(0, 247, 255, 0.15);
   }
 
   .nav-links li a.router-link-exact-active {
@@ -358,7 +352,7 @@ export default {
   .logout-button, .signup-button {
     width: calc(100% - 40px);
     margin: 10px 20px;
-    padding: 15px 0; /* Збільшено падінги */
+    padding: 15px 0;
     box-sizing: border-box;
   }
 }

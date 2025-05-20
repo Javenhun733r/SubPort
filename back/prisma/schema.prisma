@@ -69,13 +69,14 @@ model Author {
   Chat Chat[]
 }
 model Post {
-  id        Int     @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   title     String
   content   String
+  imageUrl  String?
   authorId  Int
-  author    Author  @relation(fields: [authorId], references: [id])
-
-  Comment Comment[]
+  author    Author    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  Comment   Comment[]
 }
 model Tier {
   id        Int      @id @default(autoincrement())
@@ -153,13 +154,14 @@ model TierSubscription {
   ReminderLog ReminderLog[]
 }
 model Comment {
-  id        Int      @id @default(autoincrement())
-  text      String   // Текст коментаря
-  postId    Int      // Ідентифікатор поста, до якого коментар
-  post      Post     @relation(fields: [postId], references: [id])
-  userId    Int      // Ідентифікатор користувача, який залишив коментар
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now()) // Дата створення коментаря
+  id        Int       @id @default(autoincrement())
+  text      String
+  imageUrl  String?
+  postId    Int
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id])
+  createdAt DateTime  @default(now())
 }
 
 model ReminderLog {

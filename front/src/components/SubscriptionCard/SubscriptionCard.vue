@@ -96,41 +96,41 @@ export default {
 <style>
 :root {
   --neon-cyan: #00f0ff;
-  --neon-cyan-hover: #00d8e6; /* Трохи яскравіший/змінений для кнопки при наведенні */
+  --neon-cyan-hover: #00d8e6;
   --card-background: #0d1117;
   --text-white: #ffffff;
   --text-black: #000000;
   --text-description: #8b949e;
   --shadow-color: rgba(0, 220, 255, 0.3);
-  --shadow-color-hover: rgba(0, 230, 255, 0.55); /* Збільшена яскравість для ховеру картки */
+  --shadow-color-hover: rgba(0, 230, 255, 0.55);
   --shadow-color-text: rgba(0, 220, 255, 0.6);
-  --button-shadow-color: rgba(0, 240, 255, 0.4); /* Тінь для кнопки */
-  --button-shadow-color-strong: rgba(0, 240, 255, 0.6); /* Сильніша тінь для пульсації кнопки */
+  --button-shadow-color: rgba(0, 240, 255, 0.4);
+  --button-shadow-color-strong: rgba(0, 240, 255, 0.6);
 }
 
 .subscription-card {
   background-color: var(--card-background);
   padding: 1.75rem;
   border-radius: 1rem;
-  border: 2px solid var(--neon-cyan); /* Чітка ціанова рамка */
+  border: 2px solid var(--neon-cyan);
   width: 100%;
   max-width: 360px;
   margin: 2rem auto;
-  /* Оновлена тінь для кращого виділення рамки */
-  box-shadow: 0 0 0 2px var(--card-background), /* Відокремлення для світіння рамки */
-  0 0 8px 2px var(--neon-cyan),   /* Яскравіше світіння близько до рамки */
-  0 0 25px 6px var(--shadow-color); /* Загальне м'яке світіння */
+
+  box-shadow: 0 0 0 2px var(--card-background),
+  0 0 8px 2px var(--neon-cyan),
+  0 0 25px 6px var(--shadow-color);
   transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-  position: relative; /* Для можливих псевдо-елементів у майбутньому */
+  position: relative;
 }
 
 .subscription-card:hover {
-  /* Оновлена тінь при наведенні */
+
   box-shadow: 0 0 0 2.5px var(--card-background),
-  0 0 12px 3px var(--neon-cyan), /* Посилене світіння рамки */
+  0 0 12px 3px var(--neon-cyan),
   0 0 35px 8px var(--shadow-color-hover);
-  transform: translateY(-7px); /* Трохи більший підйом */
+  transform: translateY(-7px);
 }
 
 .subscription-card__title {
@@ -173,8 +173,8 @@ export default {
   letter-spacing: 0.05em;
   cursor: pointer;
   outline: none;
-  position: relative; /* Для тіні */
-  /* Початкова тінь та анімація */
+  position: relative;
+
   box-shadow: 0 0 8px var(--button-shadow-color), 0 0 12px var(--button-shadow-color);
   animation: pulse-button-shadow 2.5s infinite ease-in-out;
   transition: background-color 0.2s ease-out, transform 0.2s ease-out, box-shadow 0.2s ease-out;
@@ -183,10 +183,10 @@ export default {
 .subscription-card__button:hover,
 .subscription-card__button:focus {
   background-color: var(--neon-cyan-hover);
-  transform: scale(1.05); /* Збільшене масштабування */
-  /* Яскравіша тінь при наведенні/фокусі, анімація зупиняється */
+  transform: scale(1.05);
+
   box-shadow: 0 0 12px var(--neon-cyan), 0 0 22px var(--neon-cyan-hover);
-  animation: none; /* Зупиняємо анімацію пульсації */
+  animation: none;
 }
 
 .subscription-card__description {
@@ -203,7 +203,7 @@ export default {
   }
   50% {
     box-shadow: 0 0 12px var(--button-shadow-color-strong), 0 0 18px var(--button-shadow-color-strong);
-    transform: scale(1.015); /* Легке збільшення під час пульсації */
+    transform: scale(1.015);
   }
   100% {
     box-shadow: 0 0 7px var(--button-shadow-color), 0 0 10px var(--button-shadow-color);
@@ -216,19 +216,24 @@ export default {
     padding: 1.25rem;
     max-width: 90%;
   }
+
   .subscription-card__title {
     font-size: 1.375rem;
   }
+
   .subscription-card__price {
     font-size: 2.25rem;
   }
+
   .subscription-card__price-period {
     font-size: 0.875rem;
   }
+
   .subscription-card__button {
     font-size: 1rem;
     padding: 0.75rem 1rem;
   }
+
   .subscription-card__description {
     font-size: 0.8125rem;
   }
