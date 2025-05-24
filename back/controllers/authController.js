@@ -14,8 +14,8 @@ export const sendVerificationEmail = async (email, token) => {
     const mailOptions = {
         from: process.env.EMAIL,
         to: email,
-        subject: "Confirm your email address",
-        html: `<h1>Welcome!</h1><p>Click the link below to confirm your email address:</p><a href="${process.env.FRONTEND_URL}/verify-email/${token}">Verify Email</a>`,
+        subject: "Підтвердьте вашу електронну адресу",
+        html: `<h1>Вітаємо!</h1><p>Щоб завершити реєстрацію, будь ласка, підтвердіть вашу електронну адресу, натиснувши на посилання нижче:</p><a href="${process.env.FRONTEND_URL}/verify-email/${token}">Підтвердити Email</a>`,
     };
 
     await transporter.sendMail(mailOptions);
@@ -128,12 +128,12 @@ const sendResetEmail = async (email, token) => {
     const mailOptions = {
         from: process.env.EMAIL,
         to: email,
-        subject: 'Password Reset Instructions',
+        subject: 'Інструкція для відновлення пароля',
         html: `
-      <h2>Reset your password</h2>
-      <p>Click the link below to set a new password:</p>
+      <h2>Відновлення пароля</h2>
+      <p>Натисніть на посилання нижче, щоб встановити новий пароль:</p>
       <a href="${resetLink}">${resetLink}</a>
-      <p>This link is valid for 1 hour.</p>
+      <p>Це посилання дійсне протягом 1 години.</p>
     `,
     };
 

@@ -4,13 +4,13 @@ import authorRoutes from './routes/authorRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import './cron/emailReminder.js';
+// import {sendReminders} from "./cron/emailReminder.js";
 import cors from 'cors';
 import url from 'url';
 import { WebSocketServer } from 'ws';
 import http from 'http';
 import jwt from 'jsonwebtoken';
 import prisma from './db/db.config.js';
-import path from "path";
 
 const app = express();
 app.use(cors());
@@ -23,7 +23,17 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
 const clients = new Map(); // key: WebSocket, value: { chatId, username }
-
+// (async () => {
+//     console.log('🚀 Примусовий запуск sendReminders для тестування...');
+//     try {
+//         await sendReminders();
+//         console.log('✅ Примусовий запуск sendReminders завершено.');
+//     } catch (error) {
+//         console.error('❌ Помилка під час примусового запуску sendReminders:', error);
+//     }
+//     // Якщо ви використовуєте Prisma і цей скрипт має завершитися,
+//     // а не бути частиною довготривалого сервера, можливо, знадобиться prisma.$disconnect();
+// })();
 wss.on('connection', (ws, req) => {
     const query = url.parse(req.url, true).query;
     const token = query.token;

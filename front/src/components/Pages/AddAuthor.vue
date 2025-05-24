@@ -123,7 +123,7 @@ export default {
       },
       avatarFile: null,
 
-      socialNetworks: ['Instagram', 'Facebook', 'Twitter / X', 'YouTube', 'TikTok', 'LinkedIn', 'GitHub', 'Website'],
+      socialNetworks: ['Instagram', 'Facebook', 'Twitter / X', 'YouTube', 'TikTok', 'LinkedIn', 'GitHub', 'Twitch', 'Website'],
       genres: ['Ігри (Стріми/Огляди)', 'Музика (Виконавець/Гурт)', 'Освіта (Лекції/Курси)', 'Подкасти', 'Література (Письменник/Поет)', 'Мистецтво (Художник/Фотограф)', 'Технології (Огляди/Розробка)', 'Лайфстайл (Блоги/Влоги)', 'Гумор (Стендап/Скетчі)', 'Кулінарія', 'Подорожі', 'Спорт', 'Бізнес/Фінанси', 'Наука', 'Інше'],
       isLoading: false,
       formMessage: {type: '', text: ''},

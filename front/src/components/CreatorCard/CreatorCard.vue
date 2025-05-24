@@ -105,7 +105,8 @@ export default {
         linkedin: ['fab', 'linkedin-in'],
         patreon: ['fab', 'patreon'],
         website: ['fas', 'globe'],
-        github: ['fab', 'github']
+        github: ['fab', 'github'],
+        twitch: ['fab', 'twitch'],
       };
       return icons[socialName] || ['fas', 'link'];
     }

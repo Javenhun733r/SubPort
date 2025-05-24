@@ -9,7 +9,6 @@ import {
     approveAuthorRequest,
     rejectAuthorRequest,
     getAuthors,
-    updateProfile,
     getProfile,
     createPost,
     createTier,
@@ -25,7 +24,6 @@ router.post("/requests/approve/:requestId", verifyToken, checkAdmin, approveAuth
 router.delete('/requests/reject/:requestId',verifyToken, checkAdmin, rejectAuthorRequest);
 router.get("/authors", getAuthors);
 router.get('/profile', verifyToken, getProfile);
-router.put('/profile', verifyToken, updateProfile);
 router.post("/:id/post", verifyToken, upload.single('postImage'), createPost);
 router.post("/:id/tier", verifyToken, createTier);
 router.get("/author/:username/is-owner", isOwner);

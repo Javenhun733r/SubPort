@@ -71,7 +71,7 @@
                 :price="tier.price"
                 :description="tier.description"
                 :isChat="tier.isChat"
-                :username="profile.name"
+                :username="profile.username"
                 @addUserToChat="addUserToChat"
             />
             <div v-if="isOwner" class="add-new-card new-tier-form content-card"><h4
@@ -107,7 +107,7 @@
                     <span class="custom-checkbox-box">
                         <font-awesome-icon v-if="newTier.isChat" :icon="['fas', 'check']" class="custom-checkbox-tick"/>
                     </span>
-                  <span>Додати користувача до приватного чату</span>
+                  <span>Створити приватний чат для цього рівня</span>
                 </label>
               </div>
 
@@ -509,6 +509,7 @@ export default {
         if (author) {
           this.profile = {
             id: author.id,
+            username: author.username,
             name: author.name,
             avatar: author.avatarUrl,
             followers: author.subscribers || 0,

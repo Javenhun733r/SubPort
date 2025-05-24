@@ -395,6 +395,40 @@ export const handleCallback = async (req, res) => {
                             },
                         });
                         console.log(`📈 Subscribers count for author ${authorUsername} incremented.`);
+                        const tierForChat = await prisma.tier.findUnique({
+                            where: { id: tierId }
+                        });
+
+                        if (tierForChat && tierForChat.isChat) {
+                            const chat = await prisma.chat.findFirst({
+                                where: { tierId: tierForChat.id }
+                            });
+
+                            if (chat) {
+                                const existingParticipant = await prisma.chatUser.findUnique({
+                                    where: {
+                                        chatId_userId: {
+                                            chatId: chat.id,
+                                            userId: subscribingUserId
+                                        }
+                                    }
+                                });
+                                if (!existingParticipant) {
+                                    await prisma.chatUser.create({
+                                        data: {
+                                            chatId: chat.id,
+                                            userId: subscribingUserId
+                                        }
+                                    });
+                                    console.log(`➕ User ${subscribingUserId} added to chat ${chat.id} for tier ${tierId}`);
+                                } else {
+                                    console.log(`User ${subscribingUserId} already in chat ${chat.id}`);
+                                }
+                            } else {
+                                console.warn(`⚠️ Chat not found for tier ${tierId} which has isChat=true, during callback processing.`);
+                            }
+                        }
+
                     }
                 } else {
                     console.warn(`⚠️ Could not process payment: invalid data. authorUsername ('${authorUsername}'), paymentAmount (${paymentAmount}). Order_id: ${orderId}`);

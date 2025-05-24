@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER,
+        user: process.env.EMAIL,
         pass: process.env.EMAIL_PASSWORD,
     },
 });
@@ -68,11 +68,83 @@ const sendReminders = async () => {
         }
     }
 };
+const handleExpiredSubscriptions = async () => {
+    console.log('Running task: handleExpiredSubscriptions...');
 
-// Розклад: щодня о 10:00
+    // 1. Знайти всі підписки, термін дії яких вже закінчився
+    const expiredSubscriptions = await prisma.tierSubscription.findMany({
+        where: {
+            expiresAt: {
+                lt: new Date() // Дата закінчення менша за поточну
+            }
+        },
+        include: {
+            tier: {
+                include: {
+                    chats: {
+                        select: { id: true }
+                    }
+                }
+            }
+        }
+    });
+
+    if (expiredSubscriptions.length === 0) {
+        console.log('No expired subscriptions to process.');
+        return;
+    }
+
+    console.log(`Found ${expiredSubscriptions.length} expired subscriptions to process.`);
+
+    for (const sub of expiredSubscriptions) {
+        const { userId, tier, id: subscriptionId } = sub;
+        const chat = tier?.chats[0];
+
+
+        if (tier && tier.isChat && chat) {
+            try {
+                await prisma.chatUser.delete({
+                    where: {
+                        chatId_userId: {
+                            chatId: chat.id,
+                            userId: userId
+                        }
+                    }
+                });
+                console.log(`✅ User ${userId} removed from chat ${chat.id} for expired sub ${subscriptionId}.`);
+            } catch (error) {
+                if (error.code === 'P2025') {
+                    console.log(`🟡 User ${userId} was already not in chat ${chat.id}.`);
+                } else {
+                    console.error(`❌ Failed to remove user ${userId} from chat ${chat.id}. Error:`, error);
+                    continue;
+                }
+            }
+        }
+
+        await prisma.tierSubscription.delete({
+            where: { id: subscriptionId }
+        });
+        console.log(`🗑️ Expired subscription record ${subscriptionId} deleted.`);
+    }
+};
 cron.schedule('0 10 * * *', async () => {
-    console.log('⏰ Перевірка підписок...');
-    await sendReminders();
+    console.log('⏰ Starting daily subscription maintenance job...');
+
+    try {
+        await handleExpiredSubscriptions();
+    } catch(err) {
+        console.error("❌ CRITICAL ERROR in handleExpiredSubscriptions:", err);
+    }
+    try {
+        await sendReminders();
+    } catch(err) {
+        console.error("❌ CRITICAL ERROR in sendReminders:", err);
+    }
+
+    console.log('✅ Daily subscription maintenance job finished.');
+}, {
+    timezone: "Europe/Kiev"
 });
 
 

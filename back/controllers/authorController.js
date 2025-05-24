@@ -122,16 +122,7 @@ export const approveAuthorRequest = async (req, res) => {
                 },
             }
         });
-        await prisma.chat.create({
-            data: {
-                name: `Чат ${request.name}`,
-                creatorId: userId,
-                authorId: newAuthor.id,
-                participants: {
-                    create: { userId }
-                }
-            }
-        });
+
 
         res.json({message: 'Request approved and author created', author: newAuthor});
     } catch (err) {
@@ -258,28 +249,7 @@ export const getProfile = async (req, res) => {
 };
 
 
-export const updateProfile = async (req, res) => {
-    const {name, username, bio, genre, socials} = req.body;
-    const userId = req.userId;
 
-    try {
-        const updatedUser = await prisma.user.update({
-            where: {id: userId},
-            data: {
-                name,
-                username,
-                bio,
-                genre,
-                socials: socials ? JSON.stringify(socials) : null,
-            },
-        });
-
-        res.status(200).json(updatedUser);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({error: "Internal Server Error"});
-    }
-};
 export const createPost = async (req, res) => {
     const { title, content } = req.body;
     const authorId = Number(req.params.id); // ID автора з параметрів маршруту
@@ -334,14 +304,19 @@ export const createPost = async (req, res) => {
 
 export const createTier = async (req, res) => {
     const { title, price, description, isChat } = req.body;
+    const authorId = Number(req.params.id); // ID автора з параметрів маршруту
 
     try {
         const author = await prisma.author.findUnique({
-            where: { id: Number(req.params.id) }
+            where: { id: authorId }
         });
 
-
         if (!author) return res.status(404).json({ message: "Author not found" });
+
+        // Перевірка, чи залогінений користувач є власником цієї авторської сторінки
+        if (author.userId !== req.userId) { // req.userId має бути встановлений middleware'ом verifyToken
+            return res.status(403).json({ message: "You are not authorized to create tiers for this author" });
+        }
 
         const newTier = await prisma.tier.create({
             data: {
@@ -349,9 +324,24 @@ export const createTier = async (req, res) => {
                 price: parseFloat(price),
                 description,
                 authorId: author.id,
-                isChat: isChat || false
+                isChat: isChat || false // Зберігаємо значення isChat
             }
         });
+
+        // Якщо для цього рівня підписки передбачено чат, створюємо його
+        if (newTier.isChat) {
+            await prisma.chat.create({
+                data: {
+                    name: `Чат для рівня "${newTier.title}" (Автор: ${author.name})`,
+                    creatorId: author.userId, // Користувач, який є автором
+                    authorId: author.id,      // Сутність Author
+                    tierId: newTier.id,       // Прив'язка чату до конкретного рівня
+                    participants: {
+                        create: { userId: author.userId } // Додаємо автора як учасника чату
+                    }
+                }
+            });
+        }
 
         res.status(201).json(newTier);
     } catch (err) {
@@ -398,32 +388,47 @@ export const subscribeToTier = async (req, res) => {
             return res.status(404).json({ message: 'Рівень підписки не знайдений' });
         }
 
-        const chat = await prisma.chat.findFirst({
-            where: {
-                authorId: tier.authorId
-            }
-        });
+        let chatMessage = 'Підписка підтверджена.';
 
-        if (!chat) {
-            return res.status(404).json({ message: 'Чат для цього автора не знайдено' });
+        // Якщо рівень передбачає чат, додаємо користувача до нього
+        if (tier.isChat) {
+            const chat = await prisma.chat.findFirst({
+                where: {
+                    tierId: tier.id // Шукаємо чат, пов'язаний саме з цим рівнем
+                }
+            });
+
+            if (chat) {
+                // Перевіряємо, чи користувач вже не є учасником
+                const existingParticipant = await prisma.chatUser.findUnique({
+                    where: {
+                        chatId_userId: {
+                            chatId: chat.id,
+                            userId: userId
+                        }
+                    }
+                });
+
+                if (!existingParticipant) {
+                    await prisma.chatUser.create({
+                        data: {
+                            chatId: chat.id,
+                            userId: userId
+                        }
+                    });
+                }
+                chatMessage = 'Підписка підтверджена, ви додані до чату.';
+            } else {
+                // Це не мало б статися, якщо createTier працює правильно
+                console.warn(`Chat not found for tier ${tier.id} which has isChat=true.`);
+                chatMessage = 'Підписка підтверджена, але чат для цього рівня наразі недоступний.';
+            }
+        } else {
+            chatMessage = 'Підписка підтверджена. Цей рівень не включає чат.';
         }
 
-        await prisma.chatUser.create({
-            data: {
-                chatId: chat.id,
-                userId: userId
-            }
-        });
+        return res.status(200).json({ message: chatMessage });
 
-        await prisma.user.update({
-            where: {
-                id: userId
-            },
-            data: {
-            }
-        });
-
-        return res.status(200).json({ message: 'Підписка підтверджена, ви додані до чату' });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: 'Сталася помилка при підписці на рівень' });

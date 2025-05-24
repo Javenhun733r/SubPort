@@ -2,19 +2,26 @@
   <div class="chat-container">
     <aside class="sidebar">
       <div class="sidebar-header">
-        <input type="text" placeholder="Знайти або почати новий чат..." class="search-chat-input"/>
+        <input type="text"
+               v-model="searchQuery"
+               placeholder="Знайти або почати новий чат..."
+               class="search-chat-input"
+               aria-label="Пошук або створення нового чату"/>
       </div>
       <div class="chat-list-container">
-        <div class="chat-item" v-for="chat in chats" :key="chat.id" :class="{ active: chat.id === selectedChatId }"
+        <div class="chat-item" v-for="chat in filteredChats" :key="chat.id" :class="{ active: chat.id === selectedChatId }"
              @click="selectChat(chat.id)" tabindex="0">
-          <span class="chat-icon">💬</span>
+          <span class="chat-icon" aria-hidden="true">💬</span>
           <span class="chat-name">{{ chat.name }}</span>
-          <button class="delete-btn" @click.stop="deleteChat(chat.id)" title="Видалити чат">
+          <button v-if="chat.creatorId === currentUserId" class="delete-btn" @click.stop="deleteChat(chat.id)" title="Видалити чат" aria-label="Видалити чат">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18px" height="18px">
               <path
                   d="M17 6H22V8H20V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V8H2V6H7V3C7 2.44772 7.44772 2 8 2H16C16.5523 2 17 2.44772 17 3V6ZM18 8H6V20H18V8ZM9 11H11V17H9V11ZM13 11H15V17H13V11ZM9 4V6H15V4H9Z"></path>
             </svg>
           </button>
+        </div>
+        <div v-if="searchQuery && filteredChats.length === 0" class="no-results-message">
+          За вашим запитом нічого не знайдено.
         </div>
       </div>
       <div class="users-section">
@@ -48,17 +55,14 @@
             <span class="author" v-if="msg.authorId !== currentUserId && msg.messageType !== 'info'">{{
                 msg.author
               }}:</span>
-
             <span class="text" v-if="msg.messageType === 'text' || !msg.messageType">{{ msg.text }}</span>
-
             <div v-if="msg.messageType === 'image'" class="message-image-container">
               <img :src="msg.fileUrl" :alt="msg.fileName || 'Зображення'" @click="openImageModal(msg.fileUrl)"
                    class="message-image"/>
               <p v-if="msg.text" class="image-caption">{{ msg.text }}</p>
             </div>
-
             <div v-if="msg.messageType === 'file'" class="message-file-container">
-              <a :href="msg.fileUrl" target="_blank" download class="file-link">
+              <a :href="msg.fileUrl" target="_blank" :download="msg.fileName || true" class="file-link">
                 <svg class="file-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
                      width="24px" height="24px">
                   <path d="M13 10H18L12 16L6 10H11V3H13V10ZM4 18H20V20H4V18Z"></path>
@@ -70,7 +74,6 @@
             <div v-if="msg.messageType === 'info'" class="message-info">
               {{ msg.text }}
             </div>
-
             <span class="timestamp">{{ formatTimestamp(msg.timestamp) }}</span>
           </div>
         </div>
@@ -78,16 +81,19 @@
       <div class="typing-indicator-container" v-if="typingDisplayMessage">
         <span>{{ typingDisplayMessage }}</span>
       </div>
-
-      <div v-if="fileToUploadPreview" class="file-preview-area">
-        <img v-if="fileToUpload && fileToUpload.type.startsWith('image/')" :src="fileToUploadPreview" alt="Preview"
+      <div v-if="fileToUpload" class="file-preview-area">
+        <img v-if="fileToUpload.type.startsWith('image/') && fileToUploadPreview"
+             :src="fileToUploadPreview" alt="Preview"
              class="image-preview"/>
-        <div v-else class="file-info-preview">
+        <div v-else-if="!fileToUpload.type.startsWith('image/')" class="file-info-preview">
           <svg class="file-icon-preview" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
                width="32px" height="32px">
             <path d="M13 10H18L12 16L6 10H11V3H13V10ZM4 18H20V20H4V18Z"></path>
           </svg>
           <span>{{ fileToUpload.name }} ({{ (fileToUpload.size / 1024).toFixed(1) }} KB)</span>
+        </div>
+        <div v-else-if="fileToUpload.type.startsWith('image/') && !fileToUploadPreview" class="file-info-preview">
+          <span>Завантаження прев'ю для {{ fileToUpload.name }}...</span>
         </div>
         <button @click="clearFileToUpload" class="clear-preview-btn" title="Скасувати">&times;</button>
       </div>
@@ -95,28 +101,41 @@
         <div class="progress" :style="{ width: uploadProgress + '%' }"></div>
         <span>Завантаження: {{ uploadProgress }}%</span>
       </div>
-
-
       <form @submit.prevent="prepareAndSendMessage" class="input-area" v-if="selectedChatId">
         <button type="button" @click="triggerFileInput" class="attach-file-btn" title="Прикріпити файл">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px">
-            <path
-                d="M14.8284 7.75736L16.2426 6.34315C18.5858 4.00001 22.3358 4.00001 24.6789 6.34315C27.0221 8.68629 27.0221 12.4363 24.6789 14.7794L16.9497 22.5086C13.9201 25.5382 8.97003 25.5382 5.94046 22.5086C2.91089 19.479 2.91089 14.529 5.94046 11.4994L13.4142 4.02477C15.1716 2.26738 18.0995 2.26738 19.8569 4.02477C21.6142 5.78216 21.6142 8.71006 19.8569 10.4674L12.3858 17.9385C11.6047 18.7196 10.3384 18.7196 9.55736 17.9385C8.77631 17.1575 8.77631 15.8912 9.55736 15.1101L15.7279 8.93953L14.3137 7.52532L8.14315 13.6959C6.5805 15.2585 6.5805 17.7852 8.14315 19.3478C9.70579 20.9105 12.2325 20.9105 13.7951 19.3478L21.2678 11.8768C23.8086 9.33596 23.8086 5.15622 21.2678 2.61539C18.7269 0.0745631 14.5472 0.0745631 11.9992 2.61539L4.26997 10.3446C0.488131 14.1265 0.488131 20.2324 4.26997 24.0142C8.05181 27.7961 14.1577 27.7961 17.9395 24.0142L25.6688 16.285C26.4499 15.5039 26.4499 14.2376 25.6688 13.4565C24.8878 12.6755 23.6215 12.6755 22.8405 13.4565L14.8284 7.75736Z"></path>
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px"><path d="M14.8284 7.75736L16.2426 6.34315C18.5858 4.00001 22.3358 4.00001 24.6789 6.34315C27.0221 8.68629 27.0221 12.4363 24.6789 14.7794L16.9497 22.5086C13.9201 25.5382 8.97003 25.5382 5.94046 22.5086C2.91089 19.479 2.91089 14.529 5.94046 11.4994L13.4142 4.02477C15.1716 2.26738 18.0995 2.26738 19.8569 4.02477C21.6142 5.78216 21.6142 8.71006 19.8569 10.4674L12.3858 17.9385C11.6047 18.7196 10.3384 18.7196 9.55736 17.9385C8.77631 17.1575 8.77631 15.8912 9.55736 15.1101L15.7279 8.93953L14.3137 7.52532L8.14315 13.6959C6.5805 15.2585 6.5805 17.7852 8.14315 19.3478C9.70579 20.9105 12.2325 20.9105 13.7951 19.3478L21.2678 11.8768C23.8086 9.33596 23.8086 5.15622 21.2678 2.61539C18.7269 0.0745631 14.5472 0.0745631 11.9992 2.61539L4.26997 10.3446C0.488131 14.1265 0.488131 20.2324 4.26997 24.0142C8.05181 27.7961 14.1577 27.7961 17.9395 24.0142L25.6688 16.285C26.4499 15.5039 26.4499 14.2376 25.6688 13.4565C24.8878 12.6755 23.6215 12.6755 22.8405 13.4565L14.8284 7.75736Z"></path></svg>
         </button>
         <input type="file" ref="fileInputRef" @change="handleFileChange" style="display: none;"
                accept="image/*, application/pdf, .doc, .docx, .txt, .zip">
-
         <input v-model="newMessage" placeholder="Напишіть повідомлення..." @input="handleTyping"
                @blur="stopTyping(true)"/>
         <button type="submit" title="Надіслати" :disabled="isSending || isFileUploading">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px">
-            <path
-                d="M3 13.0001H9V11.0001H3V1.8457C3 1.56931 3.22386 1.34546 3.5 1.34546C3.58495 1.34546 3.66798 1.36733 3.74195 1.40804L22.742 11.408C23.0481 11.571 23.1384 11.9648 22.9754 12.2709C22.9097 12.3919 22.8181 12.4941 22.7071 12.571L3.70708 22.571C3.42114 22.7618 3.03116 22.7278 2.84033 22.4418C2.71447 22.2539 2.66604 22.0236 2.71779 21.8043L3 13.0001Z"></path>
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px"><path d="M3 13.0001H9V11.0001H3V1.8457C3 1.56931 3.22386 1.34546 3.5 1.34546C3.58495 1.34546 3.66798 1.36733 3.74195 1.40804L22.742 11.408C23.0481 11.571 23.1384 11.9648 22.9754 12.2709C22.9097 12.3919 22.8181 12.4941 22.7071 12.571L3.70708 22.571C3.42114 22.7618 3.03116 22.7278 2.84033 22.4418C2.71447 22.2539 2.66604 22.0236 2.71779 21.8043L3 13.0001Z"></path></svg>
         </button>
       </form>
     </main>
+
+    <aside class="chat-files-sidebar" v-if="selectedChatId">
+      <div class="chat-files-header">
+        <h3>Файли чату</h3>
+      </div>
+      <div class="chat-files-list-container">
+        <div v-if="chatFiles.length === 0" class="no-files-message">
+          У цьому чаті ще немає файлів.
+        </div>
+        <div class="chat-file-item" v-for="fileMsg in chatFiles" :key="fileMsg.id + '-file'">
+          <a :href="fileMsg.fileUrl" target="_blank" :download="fileMsg.fileName || true" class="chat-file-link" :title="`${fileMsg.fileName} (від ${fileMsg.author}, ${formatTimestamp(fileMsg.timestamp)})`">
+            <img v-if="fileMsg.messageType === 'image'" :src="fileMsg.fileUrl" :alt="fileMsg.fileName" class="chat-file-thumbnail"/>
+            <div v-else class="chat-file-icon-wrapper">
+              <svg class="chat-file-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32px" height="32px">
+                <path d="M13.1716 3L18.5858 8.41421L13.1716 3ZM12.1716 2L18.5858 2C19.7904 2 20.5858 2.79545 20.5858 4V20C20.5858 21.2045 19.7904 22 18.5858 22H5.41421C4.20955 22 3.41421 21.2045 3.41421 20V4C3.41421 2.79545 4.20955 2 5.41421 2H12.1716Z M12.1716 4H5.41421V20H18.5858V9.41421H12.1716V4Z"></path>
+              </svg>
+            </div>
+            <span class="chat-file-name">{{ fileMsg.fileName || 'Файл без назви' }}</span>
+          </a>
+        </div>
+      </div>
+    </aside>
   </div>
 </template>
 
@@ -140,7 +159,7 @@ const uploadProgress = ref(0);
 
 const currentUserId = ref(null);
 const currentUsername = ref('');
-
+const searchQuery = ref('');
 const currentChatUsers = ref([]);
 const typingUsers = ref({});
 
@@ -148,7 +167,15 @@ let typingTimeout = null;
 const TYPING_TIMER_LENGTH = 1500;
 
 const token = localStorage.getItem('jwt');
-
+const filteredChats = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return chats.value; // Якщо пошуковий запит порожній, показуємо всі чати
+  }
+  const lowerCaseQuery = searchQuery.value.toLowerCase();
+  return chats.value.filter(chat =>
+      chat.name.toLowerCase().includes(lowerCaseQuery)
+  );
+});
 if (token) {
   try {
     const decodedToken = jwt_decode(token);
@@ -158,6 +185,16 @@ if (token) {
     console.error("Failed to decode JWT:", e);
   }
 }
+const chatFiles = computed(() => {
+  if (!selectedChatId.value || !messages.value) {
+    return [];
+  }
+  // Фільтруємо повідомлення, щоб отримати тільки ті, що містять файли
+  // і сортуємо їх від новіших до старіших (опціонально)
+  return messages.value
+      .filter(msg => msg.fileUrl && (msg.messageType === 'image' || msg.messageType === 'file'))
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Сортування за спаданням дати
+});
 
 const selectedChat = computed(() => {
   return chats.value.find(chat => chat.id === selectedChatId.value);
@@ -603,7 +640,8 @@ function getUserColor(username) {
 }
 
 .chat-container {
-  display: flex;
+  display: grid;
+  grid-template-columns: 300px 1fr 260px;
   height: 90vh;
   max-height: 1000px;
   margin: 2rem auto;
@@ -628,6 +666,7 @@ function getUserColor(username) {
   flex-direction: column;
   gap: 1rem;
   transition: width 0.3s ease;
+  overflow-y: auto;
 }
 
 .sidebar-header {
@@ -870,6 +909,7 @@ function getUserColor(username) {
   display: flex;
   flex-direction: column;
   background-color: rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .chat-header {
@@ -1158,5 +1198,146 @@ function getUserColor(username) {
   z-index: 1;
   margin: auto;
 }
+.chat-files-sidebar {
+  width: 260px; /* Ширина тепер визначається через grid-template-columns */
+  background-color: var(--background-sidebar-alpha);
+  padding: 1rem;
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: var(--text-color);
+  overflow-y: auto;
+}
 
+.chat-files-header h3 {
+  font-family: var(--font-display);
+  color: var(--primary-glow-color);
+  margin-top: 0;
+  margin-bottom: 1rem;
+  padding-left: 0.25rem;
+  border-left: 3px solid var(--accent-glow-color);
+  font-size: 1.2rem;
+}
+
+.chat-files-list-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding-right: 0.5rem; /* Для скролбару, аналогічно іншим спискам */
+}
+
+.chat-files-list-container::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-files-list-container::-webkit-scrollbar-thumb {
+  background: var(--secondary-glow-color);
+  border-radius: 3px;
+}
+.chat-files-list-container::-webkit-scrollbar-track{
+  background: rgba(0,0,0,0.2);
+  border-radius: 3px;
+}
+
+
+.no-files-message {
+  text-align: center;
+  padding: 1rem;
+  font-style: italic;
+  color: rgba(224, 224, 224, 0.6);
+}
+
+.chat-file-item {
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  background-color: var(--background-element-alpha);
+  border-radius: 6px;
+  border: 1px solid transparent;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.chat-file-item:hover {
+  background-color: var(--background-element-hover-alpha);
+  border-color: var(--secondary-glow-color);
+}
+
+.chat-file-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-color);
+  text-decoration: none;
+}
+
+.chat-file-thumbnail {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.chat-file-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 255, 255, 0.1);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.chat-file-icon {
+  color: var(--primary-glow-color);
+}
+
+
+.chat-file-name {
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1;
+}
+
+.chat-file-sender, .chat-file-timestamp {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(224, 224, 224, 0.6);
+  margin-top: 0.25rem;
+  padding-left: calc(40px + 0.75rem); /* Відступ, щоб вирівняти під назвою файлу */
+}
+.chat-file-timestamp {
+  text-align: right;
+}
+.chat-files-list-container::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar /* Додано для лівого сайдбару */ {
+  width: 8px;
+}
+
+.chat-files-list-container::-webkit-scrollbar-track,
+.sidebar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.chat-files-list-container::-webkit-scrollbar-thumb,
+.sidebar::-webkit-scrollbar-thumb {
+  background: var(--secondary-glow-color);
+  border-radius: 4px;
+  border: 1px solid var(--primary-glow-color);
+}
+
+.chat-files-list-container::-webkit-scrollbar-thumb:hover,
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-glow-color);
+}
+
+.no-results-message {
+  padding: var(--spacing-lg);
+  text-align: center;
+  font-style: italic;
+  color: var(--text-color-muted);
+}
 </style>

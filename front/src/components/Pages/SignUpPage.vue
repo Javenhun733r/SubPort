@@ -81,7 +81,7 @@ export default {
         this.countdown--;
         if (this.countdown === 0) {
           clearInterval(this.countdownInterval);
-          this.$router.push('/main').then(() => {
+          this.$router.push('/').then(() => {
             window.location.reload();
           });
         }

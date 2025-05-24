@@ -76,20 +76,7 @@
             </button>
           </form>
         </section>
-        <section v-else class="content-section withdrawal-section">
-          <h2 class="section-title">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2.5 inline-block text-cyan-500/80" fill="none"
-                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-            </svg>
-            Вивід коштів
-          </h2>
-          <div class="empty-state">
-            <p>Для виводу коштів ваш баланс має бути більшим за нуль.</p>
-            <p>Ви можете отримати кошти через донати або підписки від ваших шанувальників.</p>
-          </div>
-        </section>
+
 
         <section class="content-section author-pages-section">
           <h2 class="section-title">
